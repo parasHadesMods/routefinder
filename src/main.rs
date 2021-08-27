@@ -2,7 +2,7 @@ mod rng;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
-use rlua::Lua;
+use rlua::{Lua, Result, Variadic, Value, Context, Function};
 use std::fs;
 
 #[derive(StructOpt)]
@@ -13,19 +13,35 @@ struct Cli {
   lua_path: std::path::PathBuf
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Cli::from_args();
     let lua = Lua::new();
     let mut rng = SggPcg::new(args.seed as u64);
     let file = fs::read(args.lua_path).expect("unable to read file");
     let seed = args.seed;
     lua.context(|lua_ctx| {
-        lua_ctx.load(&file).exec().expect("unable to exec lua file");
+        let import = lua_ctx.create_function(|_, import_str: String| {
+          println!("{}", import_str);
+          Ok(())
+        })?;
+        lua_ctx.globals().set("Import", import);
+        lua_ctx.globals().set("Using", nop(lua_ctx)?);
+        lua_ctx.globals().set("OnPreThingCreation", nop(lua_ctx)?);
+        lua_ctx.globals().set("OnAnyLoad", nop(lua_ctx)?);
+        lua_ctx.globals().set("OnUsed", nop(lua_ctx)?);
+        lua_ctx.globals().set("OnActivationFinished", nop(lua_ctx)?);
+        lua_ctx.load(&file).exec()?;
         lua_ctx.globals().set("RouteFinderSeed", seed);
-        lua_ctx.load(r#"RouteFinderFirstRoomChaos = PredictStartingRoomReward(RouteFinderSeed).FirstRoomChaos"#)
-            .exec().expect("unable to predict rewards!");
-        println!("{}", lua_ctx.globals().get::<_, bool>("RouteFinderFirstRoomChaos").expect("not working"));
+        lua_ctx.load(r#"RouteFinderFirstRoomChaos = PredictStartingRoomReward(RouteFinderSeed).FirstRoomChaos"#).exec()?;
+        println!("{}", lua_ctx.globals().get::<_, bool>("RouteFinderFirstRoomChaos")?);
+        Ok(())
     })
+}
+
+fn nop<'lua>(lua_ctx: Context<'lua>) -> Result<Function<'lua>> {
+   lua_ctx.create_function(|_, args: Variadic<Value>| {
+     Ok(())
+   })
 }
 
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
