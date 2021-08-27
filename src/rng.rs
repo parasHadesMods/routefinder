@@ -7,7 +7,7 @@
 // and licensed under the MIT license.
 
 use core::fmt;
-use rand_core::{impls, le, Error, RngCore, SeedableRng};
+use rand_core::{impls, Error, RngCore};
 #[cfg(feature = "serde1")] use serde::{Deserialize, Serialize};
 
 // This is the default multiplier used by PCG for 64-bit state.
