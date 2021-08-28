@@ -2,7 +2,7 @@ mod rng;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
-use rlua::{Lua, Result, Variadic, Value, Context, Function};
+use rlua::{Lua, Result, Variadic, Value, Context, Function, Table};
 use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -37,6 +37,7 @@ fn main() -> Result<()> {
                 Ok(())
             })?;
             lua_ctx.globals().set("Import", import)?;
+            // Callbacks from the engine that we will never use; can just be nops
             lua_ctx.globals().set("Using", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnPreThingCreation", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnAnyLoad", nop(lua_ctx)?)?;
@@ -82,22 +83,44 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("OnEffectStackDecrease", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnEffectDelayedKnockbackForce", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnEffectCanceled", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("DebugPrint", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("DebugAssert", nop(lua_ctx)?)?;
+            // Time is not relevant, it's only used to set the fresh file seed and
+            // we will overwrite that.
             let get_time = lua_ctx.create_function(|_, _args: Variadic<Value>| {
                 Ok(0)
             })?;
             lua_ctx.globals().set("GetTime", get_time)?;
+            // Use english for localization.
             let get_language = lua_ctx.create_function(|_, _args: Variadic<Value>| {
                 Ok("en")
             })?;
             lua_ctx.globals().set("GetLanguage", get_language)?;
-            lua_ctx.globals().set("GetConfigOptionValue", nop(lua_ctx)?)?;
-            let rs = |_, _args: Variadic<Value>| {
+            // For now we don't care about these config options, but we might later.
+            let get_config_option_value = lua_ctx.create_function(|_, table: Table| {
+                if table.get::<&str, String>("Name")? == "DebugRNGSeed" {
+                    Ok(Value::Integer(0))
+                } else {
+                    Ok(Value::Nil)
+                }
+            })?;
+            lua_ctx.globals().set("GetConfigOptionValue", get_config_option_value)?;
+            // Hooks into the engine for RNG
+            let randomseed = scope.create_function(|_, (o_seed, _id): (Option<i32>, Value) | {
+                let seed = match o_seed {
+                    Some(s) => s,
+                    None => 0
+                };
                 let mut rng = shared_rng.borrow_mut(); 
-                *rng = SggPcg::new(0 as u64);
+                *rng = SggPcg::new(seed as u64);
                 Ok(())
-            };
-            let randomseed = scope.create_function(rs)?;
+            })?;
             lua_ctx.globals().set("randomseed", randomseed)?;
+            let randomint = scope.create_function(|_, (min, max, _id): (i32, i32, Value)| {
+                let mut rng = shared_rng.borrow_mut();
+                Ok(rand_int(&mut *rng, min, max))
+            })?;
+            lua_ctx.globals().set("randomint", randomint)?;
             let mut main_path = args.lua_path.clone();
             main_path.push("Main.lua");
             let main = fs::read(main_path).expect("unable to read file");
@@ -106,7 +129,10 @@ fn main() -> Result<()> {
             room_manager_path.push("RoomManager.lua");
             let room_manager = fs::read(room_manager_path).expect("unable to read file");
             lua_ctx.load(&room_manager).exec()?;
+            println!("Done Loading");
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
+            lua_ctx.load(r#"RandomInit()"#).exec()?;
+            println!("Prediction");
             lua_ctx.load(r#"RouteFinderFirstRoomChaos = PredictStartingRoomReward(RouteFinderSeed).FirstRoomChaos"#).exec()?;
             println!("{}", lua_ctx.globals().get::<_, bool>("RouteFinderFirstRoomChaos")?);
             Ok(())
