@@ -28,7 +28,12 @@ fn main() -> Result<()> {
             let import = scope.create_function(|inner_lua_ctx, import_str: String| {
                 println!("{}", import_str);
                 let import_file = fs::read(parent_path.clone().join(import_str)).expect("unable to read file");
-                inner_lua_ctx.load(&import_file).exec()?;
+                let cleaned_file = if import_file.starts_with("\u{feff}".as_bytes()) {
+                  &import_file[3..]
+                } else {
+                  &import_file
+                };
+                inner_lua_ctx.load(cleaned_file).exec()?;
                 Ok(())
             })?;
             lua_ctx.globals().set("Import", import)?;
@@ -37,6 +42,7 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("OnAnyLoad", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnUsed", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnActivationFinished", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnAutoUseFailed", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnMenuOpened", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnMenuCloseFinished", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnPlayerMoveStarted", nop(lua_ctx)?)?;
@@ -50,10 +56,32 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("OnMusicMarker", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnKeyPressed", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnWeaponFired", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnWeaponTriggerRelease", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnComeToRest", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnRamWeaponComplete", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnWeaponCharging", nop(lua_ctx)?)?;
             lua_ctx.globals().set("OnWeaponChargeCanceled", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnWeaponFailedToFire", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnPerfectChargeWindowEntered", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnHit", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnProjectileReflect", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnProjectileBlock", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnProjectileDeath", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnDodge", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnSpawn", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnHealed", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnCollisionReaction", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnCollisionEnd", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnObstacleCollision", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnUnitCollision", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnMovementReaction", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnAllegianceFlip", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnTouchdown", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnEffectApply", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnEffectCleared", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnEffectStackDecrease", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnEffectDelayedKnockbackForce", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("OnEffectCanceled", nop(lua_ctx)?)?;
             let get_time = lua_ctx.create_function(|_, _args: Variadic<Value>| {
                 Ok(0)
             })?;
