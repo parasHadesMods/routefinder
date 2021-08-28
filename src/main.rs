@@ -6,6 +6,7 @@ use rlua::{Lua, Result, Variadic, Value, Context, Function, Table};
 use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
+use libm::ldexp;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -121,6 +122,12 @@ fn main() -> Result<()> {
                 Ok(rand_int(&mut *rng, min, max))
             })?;
             lua_ctx.globals().set("randomint", randomint)?;
+            let random = scope.create_function(|_, _args: Variadic<Value>| {
+                let mut rng = shared_rng.borrow_mut();
+                Ok(rand_double(&mut *rng))
+            })?;
+            lua_ctx.globals().set("random", random)?;
+            // Load lua files
             let mut main_path = args.lua_path.clone();
             main_path.push("Main.lua");
             let main = fs::read(main_path).expect("unable to read file");
@@ -150,9 +157,9 @@ fn nop<'lua>(lua_ctx: Context<'lua>) -> Result<Function<'lua>> {
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
   if max > min {
     let bound = (max as u32).wrapping_sub(min as u32).wrapping_add(1);
-    return min.wrapping_add(bounded(rng, bound) as i32);
+    min.wrapping_add(bounded(rng, bound) as i32)
   } else {
-    return min;
+    min
   }
 }
 
@@ -167,3 +174,6 @@ fn bounded(rng: &mut SggPcg, bound: u32) -> u32 {
   }
 }
 
+fn rand_double(rng: &mut SggPcg) -> f64 {
+  ldexp(rng.next_u32() as f64, -32)
+}
