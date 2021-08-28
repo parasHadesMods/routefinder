@@ -1,9 +1,22 @@
 # routefinder
 Standalone routing tool for Hades
 
-For now, just a re-implementation of the Hades RNG. To find later seeds from a given seed, try this example from the Loyalty Card route:
-
+Load's the game files + mods, and can run them with game-accurate RNG. Currently hard-coded to expect to run Ello's starting boon selector
 ```
-$ cargo run -- --seed 19986 --offset 22
--1516731080
+$ cargo run --  /Users/Shared/Epic\ Games/Hades/Game.macOS.app/Contents/Resources/Content/Scripts -s 19986 -w GunWeapon -i 2
+SecondRoomReward        LockKeyDropRunProgress
+SecondRoomChaos false
+Type    Hammer
+FirstRoomChaos  false
+FirstRoomShrine false
+SecondRoomName  A_Combat06
+HammerData
+  Options
+    1
+      Name      GunSlowGrenade
+    2
+      Name      GunHomingBulletTrait
+    3
+      Name      GunExplodingSecondaryTrait
+SecondRoomRewardStore   MetaProgress
 ```
