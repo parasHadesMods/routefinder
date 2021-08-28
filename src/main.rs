@@ -140,8 +140,20 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");
-            lua_ctx.load(r#"RouteFinderFirstRoomChaos = PredictStartingRoomReward(RouteFinderSeed).FirstRoomChaos"#).exec()?;
-            println!("{}", lua_ctx.globals().get::<_, bool>("RouteFinderFirstRoomChaos")?);
+            lua_ctx.load(r#"
+                NextSeeds[1] = RouteFinderSeed
+                RandomSynchronize()
+                print(RandomFloat(0, 1))
+                print(RandomFloat(0, 1))
+                print(RandomFloat(0, 1))
+                print(RandomFloat(0, 1))
+                print(RandomFloat(0, 1))
+                --print(RandomInt(1, 100))
+                --print(RandomInt(1, 100))
+                --print(RandomInt(1, 100))
+                --print(RandomInt(1, 100))
+                --print(RandomInt(1, 100))
+                "#).exec()?;
             Ok(())
         })?;
         Ok(())
