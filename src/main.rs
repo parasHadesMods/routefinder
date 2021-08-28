@@ -13,7 +13,11 @@ struct Cli {
   #[structopt(short = "s", long = "seed")]
   seed: i32,
   #[structopt(parse(from_os_str))]
-  lua_path: std::path::PathBuf
+  lua_path: std::path::PathBuf,
+  #[structopt(short = "w", long = "weapon")]
+  weapon: String,
+  #[structopt(short = "i", long = "aspect_index")]
+  aspect_index: i32
 }
 
 fn main() -> Result<()> {
@@ -140,19 +144,51 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");
+            // Set equipped weapon from cmd line
+            lua_ctx.globals().set("RouteFinderWeapon", args.weapon);
+            lua_ctx.globals().set("RouteFinderAspectIndex", args.aspect_index);
             lua_ctx.load(r#"
-                NextSeeds[1] = RouteFinderSeed
-                RandomSynchronize()
-                print(RandomFloat(0, 1))
-                print(RandomFloat(0, 1))
-                print(RandomFloat(0, 1))
-                print(RandomFloat(0, 1))
-                print(RandomFloat(0, 1))
-                --print(RandomInt(1, 100))
-                --print(RandomInt(1, 100))
-                --print(RandomInt(1, 100))
-                --print(RandomInt(1, 100))
-                --print(RandomInt(1, 100))
+                if not GameState then
+                  GameState =  {}
+                end
+                if not GameState.MetaUpgrades then
+                  GameState.MetaUpgrades = {}
+                end
+                if not GameState.ActiveMutators then
+                  GameState.ActiveMutators = {}
+                end
+                if not GameState.LastWeaponUpgradeData then
+                  GameState.LastWeaponUpgradeData = {}
+                end
+                GameState.LastWeaponUpgradeData[RouteFinderWeapon] = { Index = RouteFinderAspectIndex }
+                if not CurrentRun then
+                  CurrentRun = {}
+                end
+                if not CurrentRun.Hero then
+                  CurrentRun.Hero = {}
+                end
+                if not CurrentRun.Hero.Weapons then
+                  CurrentRun.Hero.Weapons = {}
+                end
+                CurrentRun.Hero.Weapons[RouteFinderWeapon] = true
+                --NextSeeds[1] = RouteFinderSeed
+                --RandomSynchronize()
+                RouteFinderRoomReward = PredictStartingRoomReward(RouteFinderSeed)
+                function deep_print(t, indent)
+                  local indentString = ""
+                  for i = 1, indent do
+                    indentString = indentString .. "  "
+                  end
+                  for k,v in pairs(t) do
+                    if type(v) == "table" then
+                      print(indentString..k)
+                      deep_print(v, indent + 1)
+                    else
+                      print(indentString..k, v)
+                    end
+                  end
+                end
+                deep_print(RouteFinderRoomReward, 0)
                 "#).exec()?;
             Ok(())
         })?;
