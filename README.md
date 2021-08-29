@@ -1,9 +1,9 @@
 # routefinder
 Standalone routing tool for Hades
 
-Load's the game files + mods, and can run them with game-accurate RNG. Currently hard-coded to expect to run Ello's starting boon selector
+Loads the game files, mods, and a save file, and can run them with game-accurate RNG. Currently hard-coded to expect to run Ello's starting boon selector
 ```
-$ cargo run --  /Users/Shared/Epic\ Games/Hades/Game.macOS.app/Contents/Resources/Content/Scripts -s 19986 -w GunWeapon -i 2
+$ cargo run -- /Users/Shared/Epic\ Games/Hades/Game.macOS.app/Contents/Resources/Content/Scripts --save_file ~/Library/Application\ Support/Supergiant\ Games/Hades/Profile4.sav
 SecondRoomReward        LockKeyDropRunProgress
 SecondRoomChaos false
 Type    Hammer
