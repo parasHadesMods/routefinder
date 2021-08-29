@@ -109,10 +109,10 @@ fn load_table<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) 
 
 fn load<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) -> Result<Vec<Value<'lua>>, String> {
     let num_items = read_byte(loadstate, refine(&err, "num_items"))?;
-    let mut vec = Vec::new()
+    let mut vec = Vec::new();
     for i in 1..num_items {
-        let value = load_value(loadstate, context, err)?;
-        vec.push(value);:w
+        let value = load_value(loadstate, context, refine(&err, "load"))?;
+        vec.push(value);
     }
     Ok(vec)
 }
