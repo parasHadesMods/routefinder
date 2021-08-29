@@ -1,5 +1,7 @@
 mod rng;
 mod luabins;
+mod read;
+mod save;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
@@ -150,20 +152,22 @@ fn main() -> Result<()> {
             } else {
               &save_file
             };
-            let results = match luabins::load(&mut save_file.as_slice(), lua_ctx, "save".to_string()) {
-              Ok(r) => r,
+            match luabins::load_value(&mut save_file.as_slice(), lua_ctx, "save".to_string()) {
+              Ok(r) => match r {
+                Value::String(s) => println!("{}", s.to_str().unwrap()),
+                _ => println!("other")
+              },
               Err(s) => {
-                println!("{}", s);
-                Vec::new()
+                println!("{}", s)
               }
             };
             println!("Done Loading Save");
-            for r in results {
+            /*for r in results {
               match r {
                 Value::Table(t) => println!("table"),
                 _ => println!("unknown")
               };
-            };
+            };*/
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");
