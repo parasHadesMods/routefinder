@@ -152,22 +152,10 @@ fn main() -> Result<()> {
             } else {
               &save_file
             };
-            match luabins::load_value(&mut save_file.as_slice(), lua_ctx, "save".to_string()) {
-              Ok(r) => match r {
-                Value::String(s) => println!("{}", s.to_str().unwrap()),
-                _ => println!("other")
-              },
-              Err(s) => {
-                println!("{}", s)
-              }
-            };
-            println!("Done Loading Save");
-            /*for r in results {
-              match r {
-                Value::Table(t) => println!("table"),
-                _ => println!("unknown")
-              };
-            };*/
+            match save::read(&mut save_file.as_slice(), "save".to_string()) {
+              Ok(save_file) => println!("runs {} darkness {}", save_file.runs, save_file.active_meta_points),
+              Err(s) => println!("error reading save: {}", s)
+            }
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");

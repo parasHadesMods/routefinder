@@ -2,18 +2,18 @@ use super::read;
 use std::convert::TryInto;
 
 pub struct HadesSaveV16 {
-  version: u32,
-  timestamp: u64,
-  location: String,
-  runs: u32,
-  active_meta_points: u32,
-  active_shrine_points: u32,
-  god_mode_enabled: bool,
-  hell_mode_enabled: bool,
-  lua_keys: Vec<String>,
-  current_map_name: String,
-  start_next_map: String,
-  lua_state_lz4: Vec<u8>
+  pub version: u32,
+  pub timestamp: u64,
+  pub location: String,
+  pub runs: u32,
+  pub active_meta_points: u32,
+  pub active_shrine_points: u32,
+  pub god_mode_enabled: bool,
+  pub hell_mode_enabled: bool,
+  pub lua_keys: Vec<String>,
+  pub current_map_name: String,
+  pub start_next_map: String,
+  pub lua_state_lz4: Vec<u8>
 }
 
 fn refine<'a>(s: &'a str, n: &'static str) -> String {
