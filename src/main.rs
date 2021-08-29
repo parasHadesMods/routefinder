@@ -15,14 +15,8 @@ use lz4;
 
 #[derive(StructOpt)]
 struct Cli {
-  #[structopt(short = "s", long = "seed")]
-  seed: i32,
   #[structopt(parse(from_os_str))]
   lua_path: std::path::PathBuf,
-  #[structopt(short = "w", long = "weapon")]
-  weapon: String,
-  #[structopt(short = "i", long = "aspect_index")]
-  aspect_index: i32,
   #[structopt(short = "f", long = "save_file")]
   save_file: std::path::PathBuf
 }
@@ -32,8 +26,7 @@ fn main() -> Result<()> {
     let lua = unsafe {
       Lua::new_with_debug()
     };
-    let shared_rng = Rc::new(RefCell::new(SggPcg::new(args.seed as u64)));
-    let seed = args.seed;
+    let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
     let parent_path = args.lua_path.clone();
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
@@ -146,7 +139,6 @@ fn main() -> Result<()> {
             room_manager_path.push("RoomManager.lua");
             let room_manager = fs::read(room_manager_path).expect("unable to read file");
             lua_ctx.load(&room_manager).exec()?;
-            println!("Done Loading Scripts");
             let save_file = fs::read(args.save_file).expect("unable to read file");
             let cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
               &save_file[3..]
@@ -162,7 +154,6 @@ fn main() -> Result<()> {
             };
             let lua_state = match lz4::block::decompress(&lua_state_lz4.as_slice(), Some(save::HadesSaveV16::UNCOMPRESSED_SIZE)) {
               Ok(uncompressed) => {
-                println!("uncompressed {}", uncompressed.len());
                 uncompressed
               },
               Err(e) => {
@@ -174,44 +165,17 @@ fn main() -> Result<()> {
               Ok(vec) => lua_ctx.globals().set("RouteFinderSaveFileData", vec)?,
               Err(s) => println!("{}", s)
             };
-            lua_ctx.globals().set("RouteFinderSeed", seed)?;
-            lua_ctx.load(r#"RandomInit()"#).exec()?;
-            println!("Prediction");
             // Set equipped weapon from cmd line
-            lua_ctx.globals().set("RouteFinderWeapon", args.weapon);
-            lua_ctx.globals().set("RouteFinderAspectIndex", args.aspect_index);
             lua_ctx.load(r#"
-                for k,v in pairs(RouteFinderSaveFileData) do
-                  for kk, vv in pairs(v) do
-                    print(kk)
+                for _,savedValues in pairs(RouteFinderSaveFileData) do
+                  for key, value in pairs(savedValues) do
+                    if not SaveIgnores[key] then
+                      _G[key] = value
+                    end
                   end
                 end
-                if not GameState then
-                  GameState =  {}
-                end
-                if not GameState.MetaUpgrades then
-                  GameState.MetaUpgrades = {}
-                end
-                if not GameState.ActiveMutators then
-                  GameState.ActiveMutators = {}
-                end
-                if not GameState.LastWeaponUpgradeData then
-                  GameState.LastWeaponUpgradeData = {}
-                end
-                GameState.LastWeaponUpgradeData[RouteFinderWeapon] = { Index = RouteFinderAspectIndex }
-                if not CurrentRun then
-                  CurrentRun = {}
-                end
-                if not CurrentRun.Hero then
-                  CurrentRun.Hero = {}
-                end
-                if not CurrentRun.Hero.Weapons then
-                  CurrentRun.Hero.Weapons = {}
-                end
-                CurrentRun.Hero.Weapons[RouteFinderWeapon] = true
-                --NextSeeds[1] = RouteFinderSeed
-                --RandomSynchronize()
-                RouteFinderRoomReward = PredictStartingRoomReward(RouteFinderSeed)
+                RandomInit()
+                RouteFinderRoomReward = PredictStartingRoomReward(NextSeeds[1])
                 function deep_print(t, indent)
                   local indentString = ""
                   for i = 1, indent do

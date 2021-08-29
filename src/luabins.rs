@@ -12,8 +12,13 @@ fn refine<'a>(s: &'a str, n: &'static str) -> String {
   s.to_owned() + " " + n
 }
 
-fn load_number(loadstate: &mut &[u8], err: String) -> Result<rlua::Number, String> {
-  Ok(read::f64(loadstate, err)?)
+fn load_number<'lua>(loadstate: &mut &[u8], err: String) -> Result<rlua::Value<'lua>, String> {
+  let float = read::f64(loadstate, err)?;
+  if float.fract() == 0.0 {
+    Ok(Value::Integer(float.trunc() as i64))
+  } else {
+    Ok(Value::Number(float))
+  }
 }
 
 fn load_string<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) -> Result<rlua::String<'lua>, String> {
@@ -31,7 +36,7 @@ pub fn load_value<'a>(loadstate: &mut &[u8], context: Context<'a>, err: String) 
     LUABINS_CNIL => Ok(Value::Nil),
     LUABINS_CFALSE => Ok(Value::Boolean(false)),   
     LUABINS_CTRUE => Ok(Value::Boolean(true)),   
-    LUABINS_CNUMBER => Ok(Value::Number(load_number(loadstate, refine(&err, "number"))?)),
+    LUABINS_CNUMBER => Ok(load_number(loadstate, refine(&err, "number"))?),
     LUABINS_CSTRING => Ok(Value::String(load_string(loadstate, context, refine(&err, "string"))?)),
     LUABINS_CTABLE => Ok(Value::Table(load_table(loadstate, context, refine(&err, "table"))?)),
     _ => Err(refine(&err, "type mismatch"))

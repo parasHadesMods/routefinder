@@ -61,11 +61,8 @@ pub fn read(loadstate: &mut &[u8], err: String) -> Result<HadesSaveV16, String> 
 
   let current_map_name = string(loadstate, refine(&err, "current_map_name"))?;
   let start_next_map = string(loadstate, refine(&err, "start_next_map"))?;
-  println!("start_next_map {}", start_next_map);
   let lua_state_size = read::u32(loadstate, refine(&err, "lua_state size"))?;
-  println!("declared size {}", lua_state_size);
   let lua_state_lz4 = read::bytes(loadstate, lua_state_size.try_into().unwrap(), refine(&err, "lua_state bytes"))?;
-  println!("read size {}", lua_state_lz4.len());
   
   Ok(HadesSaveV16 {
     version: version,
