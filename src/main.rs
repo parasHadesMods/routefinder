@@ -1,4 +1,5 @@
 mod rng;
+mod luabins;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
