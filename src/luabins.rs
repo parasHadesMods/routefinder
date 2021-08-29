@@ -42,7 +42,7 @@ fn load_value<'a>(loadstate: &mut &[u8], context: String) -> Result<(), String> 
     LUABINS_CTRUE => Ok(()),   
     LUABINS_CNUMBER => Ok(()),   
     LUABINS_CSTRING => Ok(()),   
-    LUABINS_CTABLE => Ok(()),
+    LUABINS_CTABLE => load_table(loadstate, refine(&context, "table")),
     _ => Err(refine(&context, " type mismatch"))
   }
 }
