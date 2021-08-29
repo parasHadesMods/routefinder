@@ -18,7 +18,9 @@ struct Cli {
   #[structopt(short = "w", long = "weapon")]
   weapon: String,
   #[structopt(short = "i", long = "aspect_index")]
-  aspect_index: i32
+  aspect_index: i32,
+  #[structopt(short = "f", long = "save_file")]
+  save_file: std::path::PathBuf
 }
 
 fn main() -> Result<()> {
@@ -141,7 +143,27 @@ fn main() -> Result<()> {
             room_manager_path.push("RoomManager.lua");
             let room_manager = fs::read(room_manager_path).expect("unable to read file");
             lua_ctx.load(&room_manager).exec()?;
-            println!("Done Loading");
+            println!("Done Loading Scripts");
+            let save_file = fs::read(args.save_file).expect("unable to read file");
+            let cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
+              &save_file[3..]
+            } else {
+              &save_file
+            };
+            let results = match luabins::load(&mut save_file.as_slice(), lua_ctx, "save".to_string()) {
+              Ok(r) => r,
+              Err(s) => {
+                println!("{}", s);
+                Vec::new()
+              }
+            };
+            println!("Done Loading Save");
+            for r in results {
+              match r {
+                Value::Table(t) => println!("table"),
+                _ => println!("unknown")
+              };
+            };
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");
