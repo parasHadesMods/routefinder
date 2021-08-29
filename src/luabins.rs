@@ -27,7 +27,6 @@ fn load_string<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String)
 
 pub fn load_value<'a>(loadstate: &mut &[u8], context: Context<'a>, err: String) -> Result<Value<'a>, String> {
   let tbyte = read::byte(loadstate, refine(&err, "type"))?;
-  println!("{}", tbyte);
   match tbyte {
     LUABINS_CNIL => Ok(Value::Nil),
     LUABINS_CFALSE => Ok(Value::Boolean(false)),   
@@ -48,7 +47,7 @@ fn load_table<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) 
      Err(_) => Err(refine(&err, "create"))
    }?;
 
-   for i in 1..total_size {
+   for i in 0..total_size {
      let key = load_value(loadstate, context, refine(&err, "key"))?;
      let value = load_value(loadstate, context, refine(&err, "value"))?;
      match table.set(key, value) {
@@ -61,9 +60,8 @@ fn load_table<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) 
 
 pub fn load<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) -> Result<Vec<Value<'lua>>, String> {
     let num_items = read::byte(loadstate, refine(&err, "num_items"))?;
-    println!("items {}", num_items);
     let mut vec = Vec::new();
-    for i in 1..num_items {
+    for i in 0..num_items {
         let value = load_value(loadstate, context, refine(&err, "load"))?;
         vec.push(value);
     }

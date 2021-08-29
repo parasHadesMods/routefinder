@@ -51,7 +51,6 @@ pub fn f64(loadstate: &mut &[u8], err: String) -> Result<f64, String> {
 }
 
 pub fn bytes<'a>(loadstate: &'a mut &[u8], len: usize, err: String) -> Result<&'a [u8], String> {
-    println!("read_bytes {} of {}", len, loadstate.len());
     if loadstate.len() >= len {
         let (bytes, rest) = loadstate.split_at(len);
         *loadstate = rest;

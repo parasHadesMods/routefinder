@@ -2,6 +2,7 @@ mod rng;
 mod luabins;
 mod read;
 mod save;
+use save::UncompressedSize;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
@@ -10,6 +11,7 @@ use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
 use libm::ldexp;
+use lz4;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -36,7 +38,6 @@ fn main() -> Result<()> {
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
             let import = scope.create_function(|inner_lua_ctx, import_str: String| {
-                println!("{}", import_str);
                 let import_file = fs::read(parent_path.clone().join(import_str)).expect("unable to read file");
                 let cleaned_file = if import_file.starts_with("\u{feff}".as_bytes()) {
                   &import_file[3..]
@@ -152,10 +153,27 @@ fn main() -> Result<()> {
             } else {
               &save_file
             };
-            match save::read(&mut save_file.as_slice(), "save".to_string()) {
-              Ok(save_file) => println!("runs {} darkness {}", save_file.runs, save_file.active_meta_points),
-              Err(s) => println!("error reading save: {}", s)
-            }
+            let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
+              Ok(save_file) => save_file.lua_state_lz4,
+              Err(s) => {
+                println!("error reading save: {}", s);
+                Vec::new()
+              }
+            };
+            let lua_state = match lz4::block::decompress(&lua_state_lz4.as_slice(), Some(save::HadesSaveV16::UNCOMPRESSED_SIZE)) {
+              Ok(uncompressed) => {
+                println!("uncompressed {}", uncompressed.len());
+                uncompressed
+              },
+              Err(e) => {
+                println!("{}", e);
+                Vec::new()
+              }
+            };
+            match luabins::load(&mut lua_state.as_slice(), lua_ctx, "luabins".to_string()) {
+              Ok(vec) => lua_ctx.globals().set("RouteFinderSaveFileData", vec)?,
+              Err(s) => println!("{}", s)
+            };
             lua_ctx.globals().set("RouteFinderSeed", seed)?;
             lua_ctx.load(r#"RandomInit()"#).exec()?;
             println!("Prediction");
@@ -163,6 +181,11 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("RouteFinderWeapon", args.weapon);
             lua_ctx.globals().set("RouteFinderAspectIndex", args.aspect_index);
             lua_ctx.load(r#"
+                for k,v in pairs(RouteFinderSaveFileData) do
+                  for kk, vv in pairs(v) do
+                    print(kk)
+                  end
+                end
                 if not GameState then
                   GameState =  {}
                 end

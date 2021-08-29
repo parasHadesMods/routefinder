@@ -1,6 +1,10 @@
 use super::read;
 use std::convert::TryInto;
 
+pub trait UncompressedSize {
+  const UNCOMPRESSED_SIZE: i32;
+}
+
 pub struct HadesSaveV16 {
   pub version: u32,
   pub timestamp: u64,
@@ -14,6 +18,10 @@ pub struct HadesSaveV16 {
   pub current_map_name: String,
   pub start_next_map: String,
   pub lua_state_lz4: Vec<u8>
+}
+
+impl UncompressedSize for HadesSaveV16 {
+  const UNCOMPRESSED_SIZE: i32 = 9388032;
 }
 
 fn refine<'a>(s: &'a str, n: &'static str) -> String {
@@ -46,14 +54,18 @@ pub fn read(loadstate: &mut &[u8], err: String) -> Result<HadesSaveV16, String> 
 
   let mut lua_keys = Vec::new();
   let size = read::u32(loadstate, refine(&err, "lua_keys size"))?;
-  for i in 1..size {
+  for i in 0..size {
     let lua_key = string(loadstate, refine(&err, "lua_keys"))?;
     lua_keys.push(lua_key);
   }
 
   let current_map_name = string(loadstate, refine(&err, "current_map_name"))?;
   let start_next_map = string(loadstate, refine(&err, "start_next_map"))?;
-  let lua_state_lz4 = loadstate.to_vec();
+  println!("start_next_map {}", start_next_map);
+  let lua_state_size = read::u32(loadstate, refine(&err, "lua_state size"))?;
+  println!("declared size {}", lua_state_size);
+  let lua_state_lz4 = read::bytes(loadstate, lua_state_size.try_into().unwrap(), refine(&err, "lua_state bytes"))?;
+  println!("read size {}", lua_state_lz4.len());
   
   Ok(HadesSaveV16 {
     version: version,
@@ -67,6 +79,6 @@ pub fn read(loadstate: &mut &[u8], err: String) -> Result<HadesSaveV16, String> 
     lua_keys: lua_keys,
     current_map_name: current_map_name,
     start_next_map: start_next_map,
-    lua_state_lz4: lua_state_lz4
+    lua_state_lz4: lua_state_lz4.to_vec()
   })
 }
