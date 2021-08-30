@@ -15,6 +15,53 @@ function deep_print(t, indent)
   end
 end
 
+function matches(requirements, candidate)
+  for k,v in pairs(requirements) do
+    if candidate[k] == nil then
+      return false
+    end
+    if type(v) == "function" then
+      if not v(candidate[k]) then
+        return false
+      end
+    elseif type(v) == "table" then
+      if not matches(v, candidate[k]) then
+        return false
+      end
+    elseif candidate[k] ~= v then
+      return false
+    end
+  end
+  return true
+end
+
+function one_matches(requirements, candidates)
+  if type(candidates) ~= "table" then
+    return false
+  end
+  for _,candidate in pairs(candidates) do
+    if matches(requirements, candidate) then
+      return true
+    end
+  end
+  return false
+end
+
+function matches_table(requirements, candidates)
+  if type(candidates) ~= "table" then
+    return false
+  end
+  for k,v in pairs(candidates) do
+    if requirements[k] == nil then
+      return false
+    end
+    if requirements[k] ~= v then
+      return false
+    end
+  end
+  return true
+end
+
 function PredictC2Options( roomReward )
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
@@ -31,11 +78,15 @@ function PredictC2Options( roomReward )
     RandomSynchronize(uses)
     local prediction = PredictLoot(door)
     local summary = { Seed = prediction.Seed, Waves = 0, Enemies = {}, Exits = {} }
+    local addedEnemy = {}
     if prediction.Encounter.SpawnWaves then
       for i, wave in pairs(prediction.Encounter.SpawnWaves) do
         summary.Waves = summary.Waves + 1
         for j, spawn in pairs(wave.Spawns) do
-          summary.Enemies[spawn.Name] = true
+          if not addedEnemy[spawn.Name] then -- ensure uniqueness
+            addedEnemy[spawn.Name] = true
+            table.insert(summary.Enemies, spawn.Name)
+          end
         end
       end
     end
@@ -60,9 +111,6 @@ function PredictC2Options( roomReward )
 end
 
 RandomInit()
-RouteFinderRoomReward = PredictStartingRoomReward(NextSeeds[1])
-deep_print(RouteFinderRoomReward)
-
 ScreenAnchors = {}
 function GetIdsByType(args)
   if args.Name and args.Name == "HeroExit" then
@@ -71,5 +119,44 @@ function GetIdsByType(args)
     print("Unexpected GetIdsByType")
   end
 end
-deep_print(PredictC2Options(RouteFinderRoomReward))
+
+local c1_requirements = {
+  Type = "Hammer",
+  SecondRoomRewardStore = "MetaProgress",
+  FirstRoomChaos = false,
+  HammerData = {
+    Options = function(options)
+      return one_matches({ Name = "GunExplodingSecondaryTrait"}, options)
+    end
+  }
+}
+
+local c2_requirements = {
+  Waves = 1,
+  Enemies = function(enemies)
+    return matches_table({"PunchingBagUnit"}, enemies)
+  end,
+  Exits = function(exits)
+    return one_matches({Reward = "RoomRewardMoneyDrop", ChaosGate = true}, exits)
+  end
+}
+
+for seed=19000,25000 do
+  local c1_reward = PredictStartingRoomReward(seed)
+  if matches(c1_requirements, c1_reward) then
+    local c2_matches = {}
+    for _, candidate in pairs(PredictC2Options(c1_reward)) do
+      if matches(c2_requirements, candidate) then
+        table.insert(c2_matches, candidate)
+      end
+    end
+    if not IsEmpty(c2_matches) then
+      print("Seed:", seed)
+      deep_print(c1_reward, 1)
+      for _, candidate in pairs(c2_matches) do
+        deep_print(candidate, 1)
+      end
+    end
+  end
+end
 
