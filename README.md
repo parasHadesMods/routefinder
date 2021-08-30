@@ -1,9 +1,10 @@
 # routefinder
 Standalone routing tool for Hades
 
-Loads the game files, mods, and a save file, and can run them with game-accurate RNG. Currently hard-coded to expect to run Ello's starting boon selector
+Loads the game files, mods, and a save file, and can run a lua script in that environment with game-accurate RNG.
+
 ```
-$ cargo run -- /Users/Shared/Epic\ Games/Hades/Game.macOS.app/Contents/Resources/Content/Scripts --save_file ~/Library/Application\ Support/Supergiant\ Games/Hades/Profile4.sav
+$ cargo run -- -f ~/Library/Application\ Support/Supergiant\ Games/Hades/Profile4.sav ./StartingBoonDemo.lua
 SecondRoomReward        LockKeyDropRunProgress
 SecondRoomChaos false
 Type    Hammer
@@ -19,4 +20,23 @@ HammerData
     3
       Name      GunExplodingSecondaryTrait
 SecondRoomRewardStore   MetaProgress
+...
+11
+  Waves 1
+  Seed  906036749
+  Enemies
+    PunchingBagUnit     true
+  Exits
+    1
+      Reward    RoomRewardMaxHealthDrop
+      ChaosGate false
+      Room      A_Combat08A
+    2
+      Reward    RoomRewardMoneyDrop
+      ChaosGate true
+      Room      A_Combat14
+  Uses  20
+...
 ```
+
+set `HADES_SCRIPTS_DIR` to the Scripts directory of your hades install to avoid needing to pass it in every time
