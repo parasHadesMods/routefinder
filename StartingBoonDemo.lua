@@ -62,6 +62,15 @@ function matches_table(requirements, candidates)
   return true
 end
 
+function matches_one(options, candidate)
+  for k,v in pairs(options) do
+    if v == candidate then
+      return true
+    end
+  end
+  return false
+end
+
 function PredictC2Options( roomReward )
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
@@ -120,10 +129,25 @@ function GetIdsByType(args)
   end
 end
 
+local small_rooms = {
+  "A_Combat01",
+  "A_Combat03",
+  "A_Combat04",
+  "A_Combat05",
+  "A_Combat06",
+  "A_Combat07",
+  "A_Combat08A",
+  "A_Combat09",
+  "A_Combat10"
+}
+
 local c1_requirements = {
   Type = "Hammer",
   SecondRoomRewardStore = "MetaProgress",
   FirstRoomChaos = false,
+  SecondRoomName = function(roomName)
+    return matches_one(small_rooms, roomName)
+  end,
   HammerData = {
     Options = function(options)
       return one_matches({ Name = "GunExplodingSecondaryTrait"}, options)
