@@ -91,6 +91,8 @@ fn main() -> Result<()> {
             lua_ctx.globals().set("OnEffectCanceled", nop(lua_ctx)?)?;
             lua_ctx.globals().set("DebugPrint", nop(lua_ctx)?)?;
             lua_ctx.globals().set("DebugAssert", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("SetProjectileProperty", nop(lua_ctx)?)?;
+            lua_ctx.globals().set("PreLoadBinks", nop(lua_ctx)?)?;
             // Time is not relevant, it's only used to set the fresh file seed and
             // we will overwrite that.
             let get_time = lua_ctx.create_function(|_, _args: Variadic<Value>| {
