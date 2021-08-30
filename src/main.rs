@@ -18,7 +18,9 @@ struct Cli {
   #[structopt(parse(from_os_str))]
   lua_path: std::path::PathBuf,
   #[structopt(short = "f", long = "save_file")]
-  save_file: std::path::PathBuf
+  save_file: std::path::PathBuf,
+  #[structopt(short = "s", long = "script")]
+  script: std::path::PathBuf
 }
 
 fn main() -> Result<()> {
@@ -165,7 +167,7 @@ fn main() -> Result<()> {
               Ok(vec) => lua_ctx.globals().set("RouteFinderSaveFileData", vec)?,
               Err(s) => println!("{}", s)
             };
-            // Set equipped weapon from cmd line
+            // put save file data into globals
             lua_ctx.load(r#"
                 for _,savedValues in pairs(RouteFinderSaveFileData) do
                   for key, value in pairs(savedValues) do
@@ -174,24 +176,10 @@ fn main() -> Result<()> {
                     end
                   end
                 end
-                RandomInit()
-                RouteFinderRoomReward = PredictStartingRoomReward(NextSeeds[1])
-                function deep_print(t, indent)
-                  local indentString = ""
-                  for i = 1, indent do
-                    indentString = indentString .. "  "
-                  end
-                  for k,v in pairs(t) do
-                    if type(v) == "table" then
-                      print(indentString..k)
-                      deep_print(v, indent + 1)
-                    else
-                      print(indentString..k, v)
-                    end
-                  end
-                end
-                deep_print(RouteFinderRoomReward, 0)
                 "#).exec()?;
+            // load and run script
+            let script = fs::read(args.script).expect("unable to read script");
+            lua_ctx.load(&script).exec()?;
             Ok(())
         })?;
         Ok(())
