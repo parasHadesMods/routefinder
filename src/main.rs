@@ -142,12 +142,12 @@ fn main() -> Result<()> {
             let room_manager = fs::read(room_manager_path).expect("unable to read file");
             lua_ctx.load(&room_manager).exec()?;
             let save_file = fs::read(args.save_file).expect("unable to read file");
-            let cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
+            let mut cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
               &save_file[3..]
             } else {
               &save_file
             };
-            let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
+            let lua_state_lz4 = match save::read(&mut cleaned_save, "save".to_string()) {
               Ok(save_file) => save_file.lua_state_lz4,
               Err(s) => {
                 println!("error reading save: {}", s);

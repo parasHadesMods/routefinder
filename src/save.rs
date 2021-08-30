@@ -39,7 +39,10 @@ fn string(loadstate: &mut &[u8], err: String) -> Result<String, String> {
 
 pub fn read(loadstate: &mut &[u8], err: String) -> Result<HadesSaveV16, String> {
   let signature = read::bytes(loadstate, 4, refine(&err, "signature"))?;
-  let checksum = read::bytes(loadstate, 4, refine(&err, "checksum"))?;
+  if signature != "SGB1".as_bytes() {
+    return Err("Not a Hades save file".to_string());
+  }
+  let _checksum = read::bytes(loadstate, 4, refine(&err, "checksum"))?;
   let version = read::u32(loadstate, refine(&err, "version"))?;
   if version != 16 {
     return Err("unknown version".to_string());
@@ -54,7 +57,7 @@ pub fn read(loadstate: &mut &[u8], err: String) -> Result<HadesSaveV16, String> 
 
   let mut lua_keys = Vec::new();
   let size = read::u32(loadstate, refine(&err, "lua_keys size"))?;
-  for i in 0..size {
+  for _ in 0..size {
     let lua_key = string(loadstate, refine(&err, "lua_keys"))?;
     lua_keys.push(lua_key);
   }

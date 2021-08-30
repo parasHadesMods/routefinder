@@ -52,7 +52,7 @@ fn load_table<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) 
      Err(_) => Err(refine(&err, "create"))
    }?;
 
-   for i in 0..total_size {
+   for _ in 0..total_size {
      let key = load_value(loadstate, context, refine(&err, "key"))?;
      let value = load_value(loadstate, context, refine(&err, "value"))?;
      match table.set(key, value) {
@@ -66,7 +66,7 @@ fn load_table<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) 
 pub fn load<'lua>(loadstate: &mut &[u8], context: Context<'lua>, err: String) -> Result<Vec<Value<'lua>>, String> {
     let num_items = read::byte(loadstate, refine(&err, "num_items"))?;
     let mut vec = Vec::new();
-    for i in 0..num_items {
+    for _ in 0..num_items {
         let value = load_value(loadstate, context, refine(&err, "load"))?;
         vec.push(value);
     }
