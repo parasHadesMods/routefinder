@@ -134,6 +134,10 @@ fn main() -> Result<()> {
                 Ok(rand_double(&mut *rng))
             })?;
             lua_ctx.globals().set("random", random)?;
+            let randomgaussian = scope.create_function(|_, _args: Variadic<Value>| {
+                Ok(0.0) // only affects enemy ratios in encounters, but not number of waves or types
+            })?;
+            lua_ctx.globals().set("randomgaussian", randomgaussian)?;
             // Load lua files
             let mut main_path = args.hades_scripts_dir.clone();
             main_path.push("Main.lua");
@@ -217,3 +221,36 @@ fn bounded(rng: &mut SggPcg, bound: u32) -> u32 {
 fn rand_double(rng: &mut SggPcg) -> f64 {
   ldexp(rng.next_u32() as f64, -32)
 }
+
+/* Rough stab at how random gaussian generate works in the Hades code.
+   - seems to be an independant SggPcg used only for gaussians
+   - the gaussian pcg isn't reseeded on RandomSeed or reset on RandomSynchronize
+   - it does seem to be reset to the same value every time when starting the game
+
+struct GaussState {
+  has_value: bool,
+  value: f64
+}
+
+fn rand_gauss(rng: &mut SggPcg, state: &mut GaussState) -> f64 {
+  if state.has_value {
+      state.has_value = false;
+      state.value
+   } else {
+      let mut x1: f64 = 0.0;
+      let mut x2: f64 = 0.0;
+      let mut r2: f64 = 0.0;
+
+      while r2 >= 1.0 || r2 == 0.0 {
+        x1 = 2.0 * rand_double(rng) - 1.0;
+        x2 = 2.0 * rand_double(rng) - 1.0;
+        r2 = x1 * x1 + x2 * x2;
+      }
+
+      let f = libm::sqrt(-2.0 * libm::log(r2) / r2); // Box-Muller
+      state.has_value = true; // keep for next call
+      state.value = f * x1;
+      f * x2
+  }
+}
+*/
