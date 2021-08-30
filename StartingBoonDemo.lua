@@ -161,11 +161,17 @@ local c2_requirements = {
     return matches_table({"PunchingBagUnit"}, enemies)
   end,
   Exits = function(exits)
-    return one_matches({Reward = "RoomRewardMoneyDrop", ChaosGate = true}, exits)
+    return one_matches({
+      Reward = "RoomRewardMoneyDrop",
+      ChaosGate = true,
+      Room = function(roomName)
+        return matches_one(small_rooms, roomName)
+      end
+    }, exits)
   end
 }
 
-for seed=19000,25000 do
+for seed=25000,100000 do
   local c1_reward = PredictStartingRoomReward(seed)
   if matches(c1_requirements, c1_reward) then
     local c2_matches = {}
