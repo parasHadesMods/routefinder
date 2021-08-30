@@ -15,11 +15,11 @@ use lz4;
 
 #[derive(StructOpt)]
 struct Cli {
+  #[structopt(short = "s", long, env)]
+  hades_scripts_dir: std::path::PathBuf,
+  #[structopt(short = "f", long)]
+  hades_save_file: std::path::PathBuf,
   #[structopt(parse(from_os_str))]
-  lua_path: std::path::PathBuf,
-  #[structopt(short = "f", long = "save_file")]
-  save_file: std::path::PathBuf,
-  #[structopt(short = "s", long = "script")]
   script: std::path::PathBuf
 }
 
@@ -29,7 +29,7 @@ fn main() -> Result<()> {
       Lua::new_with_debug()
     };
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
-    let parent_path = args.lua_path.clone();
+    let parent_path = args.hades_scripts_dir.clone();
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
             let import = scope.create_function(|inner_lua_ctx, import_str: String| {
@@ -133,15 +133,15 @@ fn main() -> Result<()> {
             })?;
             lua_ctx.globals().set("random", random)?;
             // Load lua files
-            let mut main_path = args.lua_path.clone();
+            let mut main_path = args.hades_scripts_dir.clone();
             main_path.push("Main.lua");
             let main = fs::read(main_path).expect("unable to read file");
             lua_ctx.load(&main).exec()?;
-            let mut room_manager_path = args.lua_path.clone();
+            let mut room_manager_path = args.hades_scripts_dir.clone();
             room_manager_path.push("RoomManager.lua");
             let room_manager = fs::read(room_manager_path).expect("unable to read file");
             lua_ctx.load(&room_manager).exec()?;
-            let save_file = fs::read(args.save_file).expect("unable to read file");
+            let save_file = fs::read(args.hades_save_file).expect("unable to read file");
             let mut cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
               &save_file[3..]
             } else {
