@@ -237,20 +237,21 @@ fn rand_gauss(rng: &mut SggPcg, state: &mut GaussState) -> f64 {
       state.has_value = false;
       state.value
    } else {
-      let mut x1: f64 = 0.0;
-      let mut x2: f64 = 0.0;
-      let mut r2: f64 = 0.0;
+      let mut u: f64 = 0.0;
+      let mut v: f64 = 0.0;
+      let mut s: f64 = 0.0;
 
-      while r2 >= 1.0 || r2 == 0.0 {
-        x1 = 2.0 * rand_double(rng) - 1.0;
-        x2 = 2.0 * rand_double(rng) - 1.0;
-        r2 = x1 * x1 + x2 * x2;
+      // Box-Muller, polar form
+      while s >= 1.0 || s == 0.0 {
+        u = 2.0 * rand_double(rng) - 1.0;
+        v = 2.0 * rand_double(rng) - 1.0;
+        s = u * u + v * v;
       }
 
-      let f = libm::sqrt(-2.0 * libm::log(r2) / r2); // Box-Muller
+      let f = libm::sqrt(-2.0 * libm::log(s) / s);
       state.has_value = true; // keep for next call
-      state.value = f * x1;
-      f * x2
+      state.value = f * u;
+      f * v
   }
 }
 */
