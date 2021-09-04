@@ -43,76 +43,9 @@ fn main() -> Result<()> {
                 Ok(())
             })?;
             lua_ctx.globals().set("Import", import)?;
-            // Callbacks from the engine that we will never use; can just be nops
-            lua_ctx.globals().set("Using", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnPreThingCreation", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnAnyLoad", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnUsed", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnActivationFinished", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnAutoUseFailed", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMenuOpened", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMenuCloseFinished", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnPlayerMoveStarted", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnPlayerMoveStopped", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnControlPressed", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnActiveUseTarget", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnActiveUseTargetLost", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMouseOver", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMouseOff", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnControlHotSwap", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMusicMarker", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnKeyPressed", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnWeaponFired", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnWeaponTriggerRelease", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnComeToRest", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnRamWeaponComplete", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnWeaponCharging", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnWeaponChargeCanceled", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnWeaponFailedToFire", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnPerfectChargeWindowEntered", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnHit", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnProjectileReflect", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnProjectileBlock", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnProjectileDeath", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnDodge", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnSpawn", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnHealed", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnCollisionReaction", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnCollisionEnd", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnObstacleCollision", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnUnitCollision", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnMovementReaction", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnAllegianceFlip", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnTouchdown", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnEffectApply", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnEffectCleared", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnEffectStackDecrease", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnEffectDelayedKnockbackForce", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("OnEffectCanceled", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("DebugPrint", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("DebugAssert", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("SetProjectileProperty", nop(lua_ctx)?)?;
-            lua_ctx.globals().set("PreLoadBinks", nop(lua_ctx)?)?;
-            // Time is not relevant, it's only used to set the fresh file seed and
-            // we will overwrite that.
-            let get_time = lua_ctx.create_function(|_, _args: Variadic<Value>| {
-                Ok(0)
-            })?;
-            lua_ctx.globals().set("GetTime", get_time)?;
-            // Use english for localization.
-            let get_language = lua_ctx.create_function(|_, _args: Variadic<Value>| {
-                Ok("en")
-            })?;
-            lua_ctx.globals().set("GetLanguage", get_language)?;
-            // For now we don't care about these config options, but we might later.
-            let get_config_option_value = lua_ctx.create_function(|_, table: Table| {
-                if table.get::<&str, String>("Name")? == "DebugRNGSeed" {
-                    Ok(Value::Integer(0))
-                } else {
-                    Ok(Value::Nil)
-                }
-            })?;
-            lua_ctx.globals().set("GetConfigOptionValue", get_config_option_value)?;
+            // Engine callbacks etc.
+            let engine = fs::read("Engine.lua").expect("unable to read engine");
+            lua_ctx.load(&engine).exec()?;
             // Hooks into the engine for RNG
             let randomseed = scope.create_function(|_, (o_seed, _id): (Option<i32>, Value) | {
                 let seed = match o_seed {
