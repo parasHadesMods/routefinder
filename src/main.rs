@@ -6,12 +6,14 @@ use save::UncompressedSize;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
-use rlua::{Lua, Result, Variadic, Value, Context, Function, Table};
+use rlua::{Lua, Variadic, Value};
 use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
 use libm::ldexp;
 use lz4;
+use std::path::Path;
+use std::sync::Arc;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -21,6 +23,39 @@ struct Cli {
   hades_save_file: std::path::PathBuf,
   #[structopt(parse(from_os_str))]
   script: std::path::PathBuf
+}
+
+#[derive(Debug)]
+enum Error {
+  Lua {
+    error: rlua::Error
+  },
+  IO {
+    error: std::io::Error
+  }
+}
+
+type Result<T> = core::result::Result<T, Error>;
+
+impl From<rlua::Error> for Error {
+  fn from(error: rlua::Error) -> Self {
+    Error::Lua { error: error }
+  }
+}
+
+impl From<std::io::Error> for Error {
+  fn from(error: std::io::Error) -> Self {
+    Error::IO { error: error }
+  }
+}
+
+impl From<Error> for rlua::Error {
+  fn from(error: Error) -> Self {
+     match error {
+       Error::Lua { error } => error,
+       Error::IO { error } => rlua::Error::ExternalError(Arc::new(error))
+     }
+  }
 }
 
 fn main() -> Result<()> {
@@ -33,18 +68,12 @@ fn main() -> Result<()> {
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
             let import = scope.create_function(|inner_lua_ctx, import_str: String| {
-                let import_file = fs::read(parent_path.clone().join(import_str)).expect("unable to read file");
-                let cleaned_file = if import_file.starts_with("\u{feff}".as_bytes()) {
-                  &import_file[3..]
-                } else {
-                  &import_file
-                };
-                inner_lua_ctx.load(cleaned_file).exec()?;
-                Ok(())
+                let import_file = read_file(parent_path.clone().join(import_str))?;
+                inner_lua_ctx.load(&import_file).exec()
             })?;
             lua_ctx.globals().set("Import", import)?;
             // Engine callbacks etc.
-            let engine = fs::read("Engine.lua").expect("unable to read engine");
+            let engine = read_file("Engine.lua")?;
             lua_ctx.load(&engine).exec()?;
             // Hooks into the engine for RNG
             let randomseed = scope.create_function(|_, (o_seed, _id): (Option<i32>, Value) | {
@@ -74,19 +103,14 @@ fn main() -> Result<()> {
             // Load lua files
             let mut main_path = args.hades_scripts_dir.clone();
             main_path.push("Main.lua");
-            let main = fs::read(main_path).expect("unable to read file");
+            let main = read_file(main_path)?;
             lua_ctx.load(&main).exec()?;
             let mut room_manager_path = args.hades_scripts_dir.clone();
             room_manager_path.push("RoomManager.lua");
-            let room_manager = fs::read(room_manager_path).expect("unable to read file");
+            let room_manager = read_file(room_manager_path)?;
             lua_ctx.load(&room_manager).exec()?;
-            let save_file = fs::read(args.hades_save_file).expect("unable to read file");
-            let mut cleaned_save = if save_file.starts_with("\u{feff}".as_bytes()) {
-              &save_file[3..]
-            } else {
-              &save_file
-            };
-            let lua_state_lz4 = match save::read(&mut cleaned_save, "save".to_string()) {
+            let save_file = read_file(args.hades_save_file)?;
+            let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
               Ok(save_file) => save_file.lua_state_lz4,
               Err(s) => {
                 println!("error reading save: {}", s);
@@ -117,19 +141,23 @@ fn main() -> Result<()> {
                 end
                 "#).exec()?;
             // load and run script
-            let script = fs::read(args.script).expect("unable to read script");
-            lua_ctx.load(&script).exec()?;
-            Ok(())
+            let script = read_file(args.script)?;
+            lua_ctx.load(&script).exec()
         })?;
         Ok(())
     })
 }
 
-fn nop<'lua>(lua_ctx: Context<'lua>) -> Result<Function<'lua>> {
-   lua_ctx.create_function(|_, _args: Variadic<Value>| {
-     Ok(())
-   })
+const BYTE_ORDER_MARK: &[u8] = "\u{feff}".as_bytes();
+fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
+  let file = fs::read(path)?;
+  if file.starts_with(BYTE_ORDER_MARK) {
+     Ok(file[3..].to_vec())
+  } else {
+     Ok(file.to_vec())
+  }
 }
+
 
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
   if max > min {
