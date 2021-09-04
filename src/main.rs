@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
             let import = scope.create_function(|inner_lua_ctx, import_str: String| {
-                let import_file = read_file(parent_path.clone().join(import_str))?;
+                let import_file = read_file(parent_path.join(import_str))?;
                 inner_lua_ctx.load(&import_file).exec()
             })?;
             lua_ctx.globals().set("Import", import)?;
@@ -101,13 +101,9 @@ fn main() -> Result<()> {
             })?;
             lua_ctx.globals().set("randomgaussian", randomgaussian)?;
             // Load lua files
-            let mut main_path = args.hades_scripts_dir.clone();
-            main_path.push("Main.lua");
-            let main = read_file(main_path)?;
+            let main = read_file(args.hades_scripts_dir.join("Main.lua"))?;
             lua_ctx.load(&main).exec()?;
-            let mut room_manager_path = args.hades_scripts_dir.clone();
-            room_manager_path.push("RoomManager.lua");
-            let room_manager = read_file(room_manager_path)?;
+            let room_manager = read_file(args.hades_scripts_dir.join("RoomManager.lua"))?;
             lua_ctx.load(&room_manager).exec()?;
             let save_file = read_file(args.hades_save_file)?;
             let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
@@ -157,7 +153,6 @@ fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
      Ok(file.to_vec())
   }
 }
-
 
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
   if max > min {
