@@ -1,3 +1,4 @@
+ParasDoorPredictions.Config.PrintNextSeed = false
 
 function deep_print(t, indent)
   if not indent then indent = 0 end
@@ -83,7 +84,7 @@ function PredictC2Options( roomReward )
   door.Room.ChosenRewardType = roomReward.SecondRoomReward
   door.Room.RewardStoreName = roomReward.SecondRoomRewardStore
   local predictions = {}
-  for uses=10,25 do
+  for uses=15,25 do
     RandomSynchronize(uses)
     local prediction = PredictLoot(door)
     local summary = { Seed = prediction.Seed, Waves = 0, Enemies = {}, Exits = {} }
@@ -145,6 +146,7 @@ local c1_requirements = {
   Type = "Hammer",
   SecondRoomRewardStore = "MetaProgress",
   FirstRoomChaos = false,
+  SecondRoomChaos = false,
   SecondRoomName = function(roomName)
     return matches_one(small_rooms, roomName)
   end,
@@ -175,10 +177,12 @@ for seed=25000,100000 do
   local c1_reward = PredictStartingRoomReward(seed)
   if matches(c1_requirements, c1_reward) then
     local c2_matches = {}
+    c1_reward.C2_Seeds = {}
     for _, candidate in pairs(PredictC2Options(c1_reward)) do
       if matches(c2_requirements, candidate) then
         table.insert(c2_matches, candidate)
       end
+     table.insert(c1_reward.C2_Seeds, candidate.Seed)
     end
     if not IsEmpty(c2_matches) then
       print("Seed:", seed)
