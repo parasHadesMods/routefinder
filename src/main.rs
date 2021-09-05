@@ -143,8 +143,7 @@ fn main() -> Result<()> {
                 "#).exec()?;
             // load and run script
             load_lua_file(lua_ctx, &args.script)
-        })?;
-        Ok(())
+        })
     })
 }
 
