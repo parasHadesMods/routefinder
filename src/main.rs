@@ -6,7 +6,7 @@ use save::UncompressedSize;
 use rng::SggPcg;
 use rand::RngCore;
 use structopt::StructOpt;
-use rlua::{Lua, Variadic, Value};
+use rlua::{Lua, Variadic, Value, Context};
 use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -26,12 +26,29 @@ struct Cli {
 }
 
 #[derive(Debug)]
+struct SimpleStringError {
+  description: String
+}
+
+impl std::fmt::Display for SimpleStringError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.description)
+    }
+}
+
+impl std::error::Error for SimpleStringError {
+}
+
+#[derive(Debug)]
 enum Error {
   Lua {
     error: rlua::Error
   },
   IO {
     error: std::io::Error
+  },
+  SimpleString {
+    error: SimpleStringError
   }
 }
 
@@ -49,11 +66,22 @@ impl From<std::io::Error> for Error {
   }
 }
 
+impl From<String> for Error {
+  fn from(description: String) -> Self {
+    Error::SimpleString {
+      error: SimpleStringError {
+        description: description
+      }
+    }
+  }
+}
+
 impl From<Error> for rlua::Error {
   fn from(error: Error) -> Self {
      match error {
        Error::Lua { error } => error,
-       Error::IO { error } => rlua::Error::ExternalError(Arc::new(error))
+       Error::IO { error } => rlua::Error::ExternalError(Arc::new(error)),
+       Error::SimpleString { error } => rlua::Error::ExternalError(Arc::new(error))
      }
   }
 }
@@ -64,14 +92,8 @@ fn main() -> Result<()> {
       Lua::new_with_debug()
     };
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
-    let parent_path = args.hades_scripts_dir.clone();
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| {
-            let import = scope.create_function(|inner_lua_ctx, import_str: String| {
-                let import_file = read_file(parent_path.join(import_str))?;
-                inner_lua_ctx.load(&import_file).exec()
-            })?;
-            lua_ctx.globals().set("Import", import)?;
             // Engine callbacks etc.
             let engine = read_file("Engine.lua")?;
             lua_ctx.load(&engine).exec()?;
@@ -101,10 +123,9 @@ fn main() -> Result<()> {
             })?;
             lua_ctx.globals().set("randomgaussian", randomgaussian)?;
             // Load lua files
-            let main = read_file(args.hades_scripts_dir.join("Main.lua"))?;
-            lua_ctx.load(&main).exec()?;
-            let room_manager = read_file(args.hades_scripts_dir.join("RoomManager.lua"))?;
-            lua_ctx.load(&room_manager).exec()?;
+            load_lua_file(lua_ctx, &args.hades_scripts_dir.join("Main.lua"))?;
+            load_lua_file(lua_ctx, &args.hades_scripts_dir.join("RoomManager.lua"))?;
+            // Load save file
             let save_file = read_file(args.hades_save_file)?;
             let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
               Ok(save_file) => save_file.lua_state_lz4,
@@ -137,8 +158,7 @@ fn main() -> Result<()> {
                 end
                 "#).exec()?;
             // load and run script
-            let script = read_file(args.script)?;
-            lua_ctx.load(&script).exec()
+            load_lua_file(lua_ctx, &args.script)
         })?;
         Ok(())
     })
@@ -152,6 +172,21 @@ fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
   } else {
      Ok(file.to_vec())
   }
+}
+
+fn load_lua_file<'lua, P: AsRef<Path>>(lua_ctx: Context<'lua>, path: &P) -> Result<()> {
+  let abs_path = path.as_ref().canonicalize()?;
+  let parent_path = abs_path.parent().ok_or("No parent path".to_string())?;
+  lua_ctx.scope(|scope| {
+      let import = scope.create_function(|inner_lua_ctx, import_str: String| {
+          let import_file = read_file(parent_path.join(import_str))?;
+          inner_lua_ctx.load(&import_file).exec()
+      })?;
+      let file = read_file(path)?;
+      lua_ctx.globals().set("Import", import)?;
+      lua_ctx.load(&file).exec()?;
+      Ok(())
+  })
 }
 
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {

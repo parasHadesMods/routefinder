@@ -5,6 +5,9 @@ src/rng.rs:
   Copyright 2018 Developers of the Rand project.
   Copyright 2017 Paul Dicker.
   Copyright 2014-2017 Melissa O'Neill and PCG Project contributors
+Utils/JsonPrint.lua:
+  Copyright 2021 paradigmsort
+  Copyright (c) 2015-2017 Shunsuke Shimizu (grafi)
 Everything else:
   Copyright 2021 paradigmsort
 
