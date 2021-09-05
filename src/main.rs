@@ -93,7 +93,7 @@ fn main() -> Result<()> {
     };
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
     lua.context(|lua_ctx| {
-        lua_ctx.scope(|scope| {
+        lua_ctx.scope(|scope| -> Result<()> {
             // Engine callbacks etc.
             let engine = read_file("Engine.lua")?;
             lua_ctx.load(&engine).exec()?;
@@ -127,26 +127,10 @@ fn main() -> Result<()> {
             load_lua_file(lua_ctx, &args.hades_scripts_dir.join("RoomManager.lua"))?;
             // Load save file
             let save_file = read_file(args.hades_save_file)?;
-            let lua_state_lz4 = match save::read(&mut save_file.as_slice(), "save".to_string()) {
-              Ok(save_file) => save_file.lua_state_lz4,
-              Err(s) => {
-                println!("error reading save: {}", s);
-                Vec::new()
-              }
-            };
-            let lua_state = match lz4::block::decompress(&lua_state_lz4.as_slice(), Some(save::HadesSaveV16::UNCOMPRESSED_SIZE)) {
-              Ok(uncompressed) => {
-                uncompressed
-              },
-              Err(e) => {
-                println!("{}", e);
-                Vec::new()
-              }
-            };
-            match luabins::load(&mut lua_state.as_slice(), lua_ctx, "luabins".to_string()) {
-              Ok(vec) => lua_ctx.globals().set("RouteFinderSaveFileData", vec)?,
-              Err(s) => println!("{}", s)
-            };
+            let lua_state_lz4 = save::read(&mut save_file.as_slice(), "save".to_string())?.lua_state_lz4;
+            let lua_state = lz4::block::decompress(&lua_state_lz4.as_slice(), Some(save::HadesSaveV16::UNCOMPRESSED_SIZE))?;
+            let save_data = luabins::load(&mut lua_state.as_slice(), lua_ctx, "luabins".to_string())?;
+            lua_ctx.globals().set("RouteFinderSaveFileData", save_data)?;
             // put save file data into globals
             lua_ctx.load(r#"
                 for _,savedValues in pairs(RouteFinderSaveFileData) do
