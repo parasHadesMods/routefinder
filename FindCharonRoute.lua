@@ -127,6 +127,7 @@ local c3_requirements = {
 
 for seed=15000,20000 do
   local c1_reward = PredictStartingRoomReward(seed)
+  c1_reward.Seed = seed
 
   if matches(c1_requirements, c1_reward) then
     local c2_matches = {}
@@ -161,7 +162,9 @@ for seed=15000,20000 do
           if matches(c3_requirements, candidate) then
             c2_reward.Prediction = nil
             candidate.Prediction = nil
-            deep_print({ C1 = c1_reward, C2 = c2_reward, C3 = candidate})
+            deep_print({ C1 = c1_reward})
+            deep_print({ C2 = c2_reward})
+            deep_print({ C3 = candidate})
           end
         end
       end
