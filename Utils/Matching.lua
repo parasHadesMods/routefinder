@@ -53,3 +53,13 @@ function matches_one(options, candidate)
   end
   return false
 end
+
+function filter(requirements, candidates)
+  local matched = {}
+  for _,candidate in pairs(candidates) do
+    if matches(requirements, candidate) then
+      table.insert(matched, candidate)
+    end
+  end
+  return matched
+end
