@@ -125,47 +125,46 @@ local c3_requirements = {
   end
 }
 
-local seed = 19986
-local c1_reward = PredictStartingRoomReward(seed)
+for seed=15000,20000 do
+  local c1_reward = PredictStartingRoomReward(seed)
 
-if matches(c1_requirements, c1_reward) then
-  local c2_matches = {}
-  c1_reward.C2_Seeds = {} 
-  local run = CreateRun()
-  local c2_door = CreateDoor(
-    c1_reward.SecondRoomName,
-    c1_reward.SecondRoomReward,
-    c1_reward.SecondRoomRewardStore)
-  for _, candidate in pairs(PredictRoomOptions(run, c2_door)) do
-    if matches(c2_requirements, candidate) then
-      table.insert(c2_matches, candidate)
+  if matches(c1_requirements, c1_reward) then
+    local c2_matches = {}
+    c1_reward.C2_Seeds = {}
+    local run = CreateRun()
+    local c2_door = CreateDoor(
+      c1_reward.SecondRoomName,
+      c1_reward.SecondRoomReward,
+      c1_reward.SecondRoomRewardStore)
+    for _, candidate in pairs(PredictRoomOptions(run, c2_door)) do
+      if matches(c2_requirements, candidate) then
+        table.insert(c2_matches, candidate)
+      end
+     table.insert(c1_reward.C2_Seeds, candidate.Seed)
     end
-   table.insert(c1_reward.C2_Seeds, candidate.Seed)
-  end
-  for _, c2_reward in pairs(c2_matches) do
-    local c3_matches = {}
-    -- Leave C1 and update history to reflect what happened
-    local run = RunWithUpdatedHistory(run)
-    -- Enter C2
-    local c2 = DeepCopyTable(c2_door.Room)
-    c2.Encounter = c2_reward.Prediction.Encounter
-    run.CurrentRoom = c2
-    for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
-      local c3_door = CreateDoor(
-        exit.Room,
-        exit.Reward,
-        "RunProgress" -- hard-coded for now
-      )
-      NextSeeds[1] = c2_reward.Seed
-      for _, candidate in pairs(PredictRoomOptions(run, c3_door)) do
-         if matches(c3_requirements, candidate) then
-           c2_reward.Prediction = nil
-           candidate.Prediction = nil
-           deep_print(c2_reward)
-           deep_print(candidate)
-         end
+    for _, c2_reward in pairs(c2_matches) do
+      local c3_matches = {}
+      -- Leave C1 and update history to reflect what happened
+      local run = RunWithUpdatedHistory(run)
+      -- Enter C2
+      local c2 = DeepCopyTable(c2_door.Room)
+      c2.Encounter = c2_reward.Prediction.Encounter
+      run.CurrentRoom = c2
+      for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
+        local c3_door = CreateDoor(
+          exit.Room,
+          exit.Reward,
+          "RunProgress" -- hard-coded for now
+        )
+        NextSeeds[1] = c2_reward.Seed
+        for _, candidate in pairs(PredictRoomOptions(run, c3_door)) do
+          if matches(c3_requirements, candidate) then
+            c2_reward.Prediction = nil
+            candidate.Prediction = nil
+            deep_print({ C1 = c1_reward, C2 = c2_reward, C3 = candidate})
+          end
+        end
       end
     end
   end
 end
-
