@@ -21,12 +21,12 @@ local function CreateDoor( roomName, rewardType, rewardStore )
   return door
 end
 
-function PredictRoomOptions( run, door )
+function PredictRoomOptions( run, door, minUses, maxUses)
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
   CurrentRun = run
   local predictions = {}
-  for uses=15,25 do
+  for uses=minUses,maxUses do
     RandomSynchronize(uses)
     local prediction = PredictLoot(door)
     local summary = { Seed = prediction.Seed, Waves = 0, Enemies = {}, Exits = {}, Prediction = prediction }
@@ -81,8 +81,7 @@ local small_rooms = {
   "A_Combat07",
   "A_Combat08A",
   "A_Combat09",
-  "A_Combat10",
-  "A_Combat14", -- Not actually small, but allow since it's in the route
+  "A_Combat10"
 }
 
 local c1_requirements = {
@@ -125,7 +124,7 @@ local c3_requirements = {
   end
 }
 
-for seed=15000,20000 do
+for seed=200000,999999 do
   local c1_reward = PredictStartingRoomReward(seed)
   c1_reward.Seed = seed
 
@@ -137,7 +136,7 @@ for seed=15000,20000 do
       c1_reward.SecondRoomName,
       c1_reward.SecondRoomReward,
       c1_reward.SecondRoomRewardStore)
-    for _, candidate in pairs(PredictRoomOptions(run, c2_door)) do
+    for _, candidate in pairs(PredictRoomOptions(run, c2_door, 15, 25)) do
       if matches(c2_requirements, candidate) then
         table.insert(c2_matches, candidate)
       end
@@ -158,7 +157,7 @@ for seed=15000,20000 do
           "RunProgress" -- hard-coded for now
         )
         NextSeeds[1] = c2_reward.Seed
-        for _, candidate in pairs(PredictRoomOptions(run, c3_door)) do
+        for _, candidate in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
           if matches(c3_requirements, candidate) then
             c2_reward.Prediction = nil
             candidate.Prediction = nil
