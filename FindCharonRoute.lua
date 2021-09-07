@@ -21,6 +21,22 @@ local function CreateDoor( roomName, rewardType, rewardStore )
   return door
 end
 
+local function CreateSecretDoor( currentRun )
+  -- Based on HandleSecretSpawns
+  local currentRoom = currentRun.CurrentRoom
+  RandomSynchronize( 13 )
+
+  local secretRoomData = ChooseNextRoomData( currentRun, { RoomDataSet = RoomSetData.Secrets } )
+  local secretDoor = DeepCopyTable( ObstacleData.SecretDoor )
+  secretDoor.HealthCost = GetSecretDoorCost()
+  local secretRoom = CreateRoom( secretRoomData )
+  secretDoor.Room = secretRoom -- AssignRoomToExitDoor
+  secretDoor.OnUsedPresentationFunctionName = "SecretDoorUsedPresentation"
+  currentRun.LastSecretDepth = GetRunDepth( currentRun )
+
+  return secretDoor
+end
+
 function PredictRoomOptions( run, door, minUses, maxUses)
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
@@ -124,6 +140,17 @@ local c3_requirements = {
   end
 }
 
+local c4_exit_requirements = {
+  Reward = "AphroditeUpgrade",
+  Room = "A_Reprieve01"
+}
+
+local c4_requirements = {
+  Exits = function(exits)
+    return one_matches(c4_exit_requirements, exits)
+  end
+}
+
 for seed=200000,999999 do
   local c1_reward = PredictStartingRoomReward(seed)
   c1_reward.Seed = seed
@@ -157,13 +184,27 @@ for seed=200000,999999 do
           "RunProgress" -- hard-coded for now
         )
         NextSeeds[1] = c2_reward.Seed
-        for _, candidate in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
-          if matches(c3_requirements, candidate) then
-            c2_reward.Prediction = nil
-            candidate.Prediction = nil
-            deep_print({ C1 = c1_reward})
-            deep_print({ C2 = c2_reward})
-            deep_print({ C3 = candidate})
+        for _, c3_reward in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
+          if matches(c3_requirements, c3_reward) then
+            -- Leave C2 and update history
+            local run = RunWithUpdatedHistory(run)
+            -- Enter C3
+            local c3 = DeepCopyTable(c3_door.Room)
+            c3.Encounter = c3_reward.Prediction.Encounter
+            run.CurrentRoom = c3
+            NextSeeds[1] = c3_reward.Seed
+            local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
+            for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
+              if matches(c4_requirements, c4_reward) then
+                c2_reward.Prediction = nil
+                c3_reward.Prediction = nil
+                c4_reward.Prediction = nil
+                deep_print({ C1 = c1_reward})
+                deep_print({ C2 = c2_reward})
+                deep_print({ C3 = c3_reward})
+                deep_print({ C4 = c4_reward})
+              end
+            end
           end
         end
       end
