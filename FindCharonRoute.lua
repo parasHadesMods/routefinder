@@ -191,7 +191,7 @@ local c6_requirements = {
         Args = {
           UpgradeOptions = function(options)
             return one_matches({
-              Rarity = Legendary
+              Rarity = "Legendary"
             }, options)
           end
         }
@@ -247,6 +247,7 @@ for seed=2323902,2323902 do
             local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
             for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
               if matches(c4_requirements, c4_reward) then
+                c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
                 -- Leave C3 and update history
                 PickUpReward(run)
                 local run = RunWithUpdatedHistory(run)
@@ -273,7 +274,6 @@ for seed=2323902,2323902 do
                           if matches(c6_requirements, c6_reward) then
                             c2_reward.Prediction = nil
                             c3_reward.Prediction = nil
-                            c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
                             c4_reward.Prediction = nil
                             c5_reward.Prediction = nil
                             c6_reward.StoreOptions = c6_reward.Prediction.StoreOptions
