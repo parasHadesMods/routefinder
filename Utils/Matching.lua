@@ -1,13 +1,24 @@
+MatchDebug = false
+function dprint(...)
+  if MatchDebug then
+    print(...)
+  end
+end
+
 function matches(requirements, candidate)
   for k,v in pairs(requirements) do
+    dprint(k, type(v))
     if candidate[k] == nil then
+      dprint(k, "nil")
       return false
     end 
     if type(v) == "function" then
+      dprint(k, "function")
       if not v(candidate[k]) then
         return false
       end 
     elseif type(v) == "table" then
+      dprint(k, "table")
       if not matches(v, candidate[k]) then
         return false
       end 
