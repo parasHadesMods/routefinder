@@ -71,7 +71,7 @@ function PredictRoomOptions( run, door, minUses, maxUses)
     end
     if prediction.NextExitRewards then
       for k, reward in pairs(prediction.NextExitRewards) do
-        local exit = { Room = reward.RoomName }
+        local exit = { RoomName = reward.RoomName }
         if reward.ForceLootName then
           exit.Reward = reward.ForceLootName
         else
@@ -129,7 +129,7 @@ local c1_requirements = {
 local c2_exit_requirements = {
   Reward = "RoomRewardMoneyDrop",
   ChaosGate = true,
-  Room = function(roomName)
+  RoomName = function(roomName)
     return matches_one(small_rooms, roomName)
   end
 }
@@ -153,7 +153,7 @@ local c3_requirements = {
 
 local c4_exit_requirements = {
   Reward = "AphroditeUpgrade",
-  Room = "A_Reprieve01"
+  RoomName = "A_Reprieve01"
 }
 
 local c4_requirements = {
@@ -168,7 +168,7 @@ local c4_requirements = {
 }
 
 local c5_exit_requirements = {
-  Room = "A_Shop01"
+  RoomName = "A_Shop01"
 }
 
 local c5_requirements = {
@@ -200,7 +200,10 @@ local c6_requirements = {
   }
 }
 
-for seed=2323902,2323902 do
+for seed=27658903,27658903 do
+  if seed % 5000 == 0 then
+    io.stderr:write(seed, "\n")
+  end
   local c1_reward = PredictStartingRoomReward(seed)
   c1_reward.Seed = seed
 
@@ -229,7 +232,7 @@ for seed=2323902,2323902 do
       run.CurrentRoom = c2
       for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
         local c3_door = CreateDoor(
-          exit.Room,
+          exit.RoomName,
           exit.Reward,
           "RunProgress" -- hard-coded for now
         )
@@ -256,7 +259,7 @@ for seed=2323902,2323902 do
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
                 for _, exit in pairs(filter(c4_exit_requirements, c4_reward.Exits)) do
-                  local c5_door = CreateDoor(exit.Room, exit.Reward, "RunProgress") -- hard-coded for now
+                  local c5_door = CreateDoor(exit.RoomName, exit.Reward, "RunProgress") -- hard-coded for now
                   NextSeeds[1] = c4_reward.Seed
                   for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
                     if matches(c5_requirements, c5_reward) then
@@ -268,7 +271,7 @@ for seed=2323902,2323902 do
                       c5.Encounter = c5_reward.Prediction.Encounter
                       run.CurrentRoom = c5
                       for _, exit in pairs(filter(c5_exit_requirements, c5_reward.Exits)) do
-                        local c6_door = CreateDoor(exit.Room, exit.Reward, nil) -- shop???
+                        local c6_door = CreateDoor(exit.RoomName, exit.Reward, nil) -- shop???
                         NextSeeds[1] = c5_reward.Seed
                         for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 35)) do
                           if matches(c6_requirements, c6_reward) then
