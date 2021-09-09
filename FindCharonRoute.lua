@@ -71,7 +71,7 @@ function PredictRoomOptions( run, door, minUses, maxUses)
     end
     if prediction.NextExitRewards then
       for k, reward in pairs(prediction.NextExitRewards) do
-        local exit = { RoomName = reward.RoomName }
+        local exit = { RoomName = reward.RoomName, Room = reward.Room }
         if reward.ForceLootName then
           exit.Reward = reward.ForceLootName
         else
@@ -200,6 +200,13 @@ local c6_requirements = {
   }
 }
 
+function clean_reward(reward)
+  reward.Prediction = nil
+  for _, exit in pairs(reward.Exits) do
+    exit.Room = nil
+  end
+end
+
 for seed=27658903,27658903 do
   if seed % 5000 == 0 then
     io.stderr:write(seed, "\n")
@@ -211,6 +218,7 @@ for seed=27658903,27658903 do
     local c2_matches = {}
     c1_reward.C2_Seeds = {}
     local run = CreateRun()
+    RandomSynchronize(2) -- ChooseNextRoomData
     local c2_door = CreateDoor(
       c1_reward.SecondRoomName,
       c1_reward.SecondRoomReward,
@@ -231,11 +239,9 @@ for seed=27658903,27658903 do
       c2.Encounter = c2_reward.Prediction.Encounter
       run.CurrentRoom = c2
       for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
-        local c3_door = CreateDoor(
-          exit.RoomName,
-          exit.Reward,
-          "RunProgress" -- hard-coded for now
-        )
+        local c3_door = {
+          Room = DeepCopyTable(exit.Room)
+        }
         NextSeeds[1] = c2_reward.Seed
         for _, c3_reward in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
           if matches(c3_requirements, c3_reward) then
@@ -259,7 +265,9 @@ for seed=27658903,27658903 do
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
                 for _, exit in pairs(filter(c4_exit_requirements, c4_reward.Exits)) do
-                  local c5_door = CreateDoor(exit.RoomName, exit.Reward, "RunProgress") -- hard-coded for now
+                  local c5_door = {
+                    Room = DeepCopyTable(exit.Room)
+                  }
                   NextSeeds[1] = c4_reward.Seed
                   for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
                     if matches(c5_requirements, c5_reward) then
@@ -271,17 +279,19 @@ for seed=27658903,27658903 do
                       c5.Encounter = c5_reward.Prediction.Encounter
                       run.CurrentRoom = c5
                       for _, exit in pairs(filter(c5_exit_requirements, c5_reward.Exits)) do
-                        local c6_door = CreateDoor(exit.RoomName, exit.Reward, nil) -- shop???
+                        local c6_door = {
+                          Room = DeepCopyTable(exit.Room)
+                        }
                         NextSeeds[1] = c5_reward.Seed
                         for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 35)) do
                           if matches(c6_requirements, c6_reward) then
-                            c2_reward.Prediction = nil
-                            c3_reward.Prediction = nil
-                            c4_reward.Prediction = nil
-                            c5_reward.Prediction = nil
+                            clean_reward(c2_reward)
+                            clean_reward(c3_reward)
+                            clean_reward(c4_reward)
+                            clean_reward(c5_reward)
                             c6_reward.StoreOptions = c6_reward.Prediction.StoreOptions
                             c6_reward.HasCharonBag = c6_reward.Prediction.HasCharonBag
-                            c6_reward.Prediction = nil
+                            clean_reward(c6_reward)
                             deep_print({ C1 = c1_reward})
                             deep_print({ C2 = c2_reward})
                             deep_print({ C3 = c3_reward})
