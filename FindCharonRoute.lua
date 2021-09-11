@@ -42,10 +42,21 @@ local function CreateSecretDoor( currentRun )
   return secretDoor
 end
 
-local function PickUpReward(run)
-  if run.CurrentRoom.ChosenRewardType == "LockKeyDropRunProgress" then
+local function PickUpReward(run, requirements)
+  local lootName = run.CurrentRoom.ChosenRewardType
+  if lootName == "LockKeyDropRunProgress" then
     run.NumRerolls = run.NumRerolls + 1
   end
+  if lootName == "Boon" then
+    lootName = run.CurrentRoom.ForceLootName
+    if requirements.ItemName ~= nil then
+      local rarity = requirements.Rarity or "Common"
+      local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = requirements.ItemName, Rarity = rarity })
+      local trait = DeepCopyTable( traitData )
+      table.insert(run.Hero.Traits, trait)
+    end
+  end
+  run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
 end
 
 function PredictRoomOptions( run, door, minUses, maxUses)
@@ -171,13 +182,17 @@ local c5_exit_requirements = {
   RoomName = "A_Shop01"
 }
 
+local c5_boon_requirements = {
+  ItemName = "AphroditeShoutTrait"
+}
+
 local c5_requirements = {
   Exits = function(exits)
     return one_matches(c5_exit_requirements, exits)
   end,
   Prediction = {
     UpgradeOptionsReroll = function(reroll_options)
-      return one_matches({ ItemName = "AphroditeShoutTrait" }, reroll_options)
+      return one_matches(c5_boon_requirements, reroll_options)
     end
   }
 }
@@ -235,10 +250,11 @@ for seed=0,100000000 do
       PickUpReward(run)
       local run = RunWithUpdatedHistory(run)
       run.RewardStores = DeepCopyTable(c2_reward.Prediction.CurrentRun.RewardStores)
-      -- Enter C2
+      -- Enter C2 and pick up reward
       local c2 = DeepCopyTable(c2_door.Room)
       c2.Encounter = c2_reward.Prediction.Encounter
       run.CurrentRoom = c2
+      PickUpReward(run)
       for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
         local c3_door = {
           Room = DeepCopyTable(exit.Room)
@@ -247,26 +263,26 @@ for seed=0,100000000 do
         for _, c3_reward in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
           if matches(c3_requirements, c3_reward) then
             -- Leave C2 and update history
-            PickUpReward(run)
             local run = RunWithUpdatedHistory(run)
             run.RewardStores = DeepCopyTable(c3_reward.Prediction.CurrentRun.RewardStores)
-            -- Enter C3
+            -- Enter C3 and pick up reward
             local c3 = DeepCopyTable(c3_door.Room)
             c3.Encounter = c3_reward.Prediction.Encounter
             run.CurrentRoom = c3
+            PickUpReward(run)
             NextSeeds[1] = c3_reward.Seed
             local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
             for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
               if matches(c4_requirements, c4_reward) then
                 c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
                 -- Leave C3 and update history
-                PickUpReward(run)
                 local run = RunWithUpdatedHistory(run)
                 run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
-                -- Enter C4
+                -- Enter C4 and pick up reward
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
+                PickUpReward(run)
                 for _, exit in pairs(filter(c4_exit_requirements, c4_reward.Exits)) do
                   local c5_door = {
                     Room = DeepCopyTable(exit.Room)
@@ -275,13 +291,13 @@ for seed=0,100000000 do
                   for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
                     if matches(c5_requirements, c5_reward) then
                       -- Leave c4 and update history
-                      PickUpReward(run)
                       local run = RunWithUpdatedHistory(run)
                       run.RewardStores = DeepCopyTable(c5_reward.Prediction.CurrentRun.RewardStores)
-                      -- Enter C5
+                      -- Enter C5 and pick up reward
                       local c5 = DeepCopyTable(c5_door.Room)
                       c5.Encounter = c5_reward.Prediction.Encounter
                       run.CurrentRoom = c5
+                      PickUpReward(run, c5_boon_requirements)
                       for _, exit in pairs(filter(c5_exit_requirements, c5_reward.Exits)) do
                         local c6_door = {
                           Room = DeepCopyTable(exit.Room)
