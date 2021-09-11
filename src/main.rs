@@ -98,14 +98,14 @@ fn main() -> Result<()> {
             let engine = read_file("Engine.lua")?;
             lua_ctx.load(&engine).exec()?;
             // Hooks into the engine for RNG
-            let randomseed = scope.create_function(|_, (o_seed, _id): (Option<i32>, Value) | {
+            let randomseed = scope.create_function(|_, (o_seed, id): (Option<i32>, i32) | {
                 let seed = match o_seed {
                     Some(s) => s,
                     None => 0
                 };
                 let mut rng = shared_rng.borrow_mut(); 
                 *rng = SggPcg::new(seed as u64);
-                Ok(())
+                Ok(id)
             })?;
             lua_ctx.globals().set("randomseed", randomseed)?;
             let randomint = scope.create_function(|_, (min, max, _id): (i32, i32, Value)| {
@@ -162,8 +162,10 @@ fn load_lua_file<'lua, P: AsRef<Path>>(lua_ctx: Context<'lua>, path: &P) -> Resu
   let parent_path = abs_path.parent().ok_or("No parent path".to_string())?;
   lua_ctx.scope(|scope| {
       let import = scope.create_function(|inner_lua_ctx, import_str: String| {
-          let import_file = read_file(parent_path.join(import_str))?;
-          inner_lua_ctx.load(&import_file).exec()
+          let import_n1 = import_str.clone();
+          let import_n2 = import_str.clone();
+          let import_file = read_file(parent_path.join(import_n1))?;
+          inner_lua_ctx.load(&import_file).set_name(&import_n2)?.exec()
       })?;
       let file = read_file(path)?;
       lua_ctx.globals().set("Import", import)?;

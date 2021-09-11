@@ -250,6 +250,7 @@ for seed=0,100000000 do
       PickUpReward(run)
       local run = RunWithUpdatedHistory(run)
       run.RewardStores = DeepCopyTable(c2_reward.Prediction.CurrentRun.RewardStores)
+      run.LastWellShopDepth = c2_reward.Prediction.CurrentRun.LastWellShopDepth
       -- Enter C2 and pick up reward
       local c2 = DeepCopyTable(c2_door.Room)
       c2.Encounter = c2_reward.Prediction.Encounter
@@ -265,6 +266,7 @@ for seed=0,100000000 do
             -- Leave C2 and update history
             local run = RunWithUpdatedHistory(run)
             run.RewardStores = DeepCopyTable(c3_reward.Prediction.CurrentRun.RewardStores)
+            run.LastWellShopDepth = c3_reward.Prediction.CurrentRun.LastWellShopDepth
             -- Enter C3 and pick up reward
             local c3 = DeepCopyTable(c3_door.Room)
             c3.Encounter = c3_reward.Prediction.Encounter
@@ -278,6 +280,7 @@ for seed=0,100000000 do
                 -- Leave C3 and update history
                 local run = RunWithUpdatedHistory(run)
                 run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
+                run.LastWellShopDepth = c4_reward.Prediction.CurrentRun.LastWellShopDepth
                 -- Enter C4 and pick up reward
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
@@ -293,6 +296,7 @@ for seed=0,100000000 do
                       -- Leave c4 and update history
                       local run = RunWithUpdatedHistory(run)
                       run.RewardStores = DeepCopyTable(c5_reward.Prediction.CurrentRun.RewardStores)
+                      run.LastWellShopDepth = c5_reward.Prediction.CurrentRun.LastWellShopDepth
                       -- Enter C5 and pick up reward
                       local c5 = DeepCopyTable(c5_door.Room)
                       c5.Encounter = c5_reward.Prediction.Encounter
