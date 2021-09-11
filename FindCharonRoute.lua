@@ -207,8 +207,8 @@ function clean_reward(reward)
   end
 end
 
-for seed=27658903,27658903 do
-  if seed % 5000 == 0 then
+for seed=0,100000000 do
+  if seed % 10000 == 0 then
     io.stderr:write(seed, "\n")
   end
   local c1_reward = PredictStartingRoomReward(seed)
@@ -234,6 +234,7 @@ for seed=27658903,27658903 do
       -- Leave C1 and update history to reflect what happened
       PickUpReward(run)
       local run = RunWithUpdatedHistory(run)
+      run.RewardStores = DeepCopyTable(c2_reward.Prediction.CurrentRun.RewardStores)
       -- Enter C2
       local c2 = DeepCopyTable(c2_door.Room)
       c2.Encounter = c2_reward.Prediction.Encounter
@@ -248,6 +249,7 @@ for seed=27658903,27658903 do
             -- Leave C2 and update history
             PickUpReward(run)
             local run = RunWithUpdatedHistory(run)
+            run.RewardStores = DeepCopyTable(c3_reward.Prediction.CurrentRun.RewardStores)
             -- Enter C3
             local c3 = DeepCopyTable(c3_door.Room)
             c3.Encounter = c3_reward.Prediction.Encounter
@@ -260,6 +262,7 @@ for seed=27658903,27658903 do
                 -- Leave C3 and update history
                 PickUpReward(run)
                 local run = RunWithUpdatedHistory(run)
+                run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
                 -- Enter C4
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
@@ -274,6 +277,7 @@ for seed=27658903,27658903 do
                       -- Leave c4 and update history
                       PickUpReward(run)
                       local run = RunWithUpdatedHistory(run)
+                      run.RewardStores = DeepCopyTable(c5_reward.Prediction.CurrentRun.RewardStores)
                       -- Enter C5
                       local c5 = DeepCopyTable(c5_door.Room)
                       c5.Encounter = c5_reward.Prediction.Encounter
@@ -283,7 +287,7 @@ for seed=27658903,27658903 do
                           Room = DeepCopyTable(exit.Room)
                         }
                         NextSeeds[1] = c5_reward.Seed
-                        for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 35)) do
+                        for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 25)) do
                           if matches(c6_requirements, c6_reward) then
                             clean_reward(c2_reward)
                             clean_reward(c3_reward)
