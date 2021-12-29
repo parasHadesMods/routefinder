@@ -95,7 +95,7 @@ fn main() -> Result<()> {
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| -> Result<()> {
             // Engine callbacks etc.
-            load_lua_file(lua_ctx, &args.hades_scripts_dir.join("Engine.lua"))?;
+            load_lua_file(lua_ctx, &"Engine.lua")?;
             // Hooks into the engine for RNG
             let randomseed = scope.create_function(|_, (o_seed, id): (Option<i32>, i32) | {
                 let seed = match o_seed {
@@ -147,7 +147,7 @@ fn main() -> Result<()> {
 }
 
 const BYTE_ORDER_MARK: &[u8] = "\u{feff}".as_bytes();
-fn read_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Vec<u8>> {
+fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
   let file = fs::read(path)?;
   if file.starts_with(BYTE_ORDER_MARK) {
      Ok(file[3..].to_vec())
@@ -156,7 +156,7 @@ fn read_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Vec<u8>> {
   }
 }
 
-fn load_lua_file<'lua, P: AsRef<Path> + std::fmt::Debug>(lua_ctx: Context<'lua>, path: &P) -> Result<()> {
+fn load_lua_file<'lua, P: AsRef<Path>>(lua_ctx: Context<'lua>, path: &P) -> Result<()> {
   let abs_path = path.as_ref().canonicalize()?;
   let parent_path = abs_path.parent().ok_or("No parent path".to_string())?;
   lua_ctx.scope(|scope| {
