@@ -42,13 +42,18 @@ local function CreateSecretDoor( currentRun )
   return secretDoor
 end
 
-local function PickUpReward(run, requirements)
+local function PickUpReward(run, requirements, chamber, reward)
   local lootName = run.CurrentRoom.ChosenRewardType
   if lootName == "LockKeyDropRunProgress" then
     run.NumRerolls = run.NumRerolls + 1
   end
   if lootName == "Boon" then
     lootName = run.CurrentRoom.ForceLootName
+    -- Debuggint (temporary?)
+    if not requirements then
+      print(run.CurrentRoom.ForceLootName, chamber)
+      deep_print(reward.Prediction.Reward)
+    end
     if requirements.ItemName ~= nil then
       local rarity = requirements.Rarity or "Common"
       local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = requirements.ItemName, Rarity = rarity })
@@ -222,7 +227,7 @@ function clean_reward(reward)
   end
 end
 
-for seed=0,100000000 do
+for seed=3181228,3181228 do
   if seed % 10000 == 0 then
     io.stderr:write(seed, "\n")
   end
@@ -245,7 +250,6 @@ for seed=0,100000000 do
      table.insert(c1_reward.C2_Seeds, candidate.Seed)
     end
     for _, c2_reward in pairs(c2_matches) do
-      local c3_matches = {}
       -- Leave C1 and update history to reflect what happened
       PickUpReward(run)
       local run = RunWithUpdatedHistory(run)
@@ -255,7 +259,7 @@ for seed=0,100000000 do
       local c2 = DeepCopyTable(c2_door.Room)
       c2.Encounter = c2_reward.Prediction.Encounter
       run.CurrentRoom = c2
-      PickUpReward(run)
+      PickUpReward(run, nil, "C2")
       for _, exit in pairs(filter(c2_exit_requirements, c2_reward.Exits)) do
         local c3_door = {
           Room = DeepCopyTable(exit.Room)
@@ -271,7 +275,7 @@ for seed=0,100000000 do
             local c3 = DeepCopyTable(c3_door.Room)
             c3.Encounter = c3_reward.Prediction.Encounter
             run.CurrentRoom = c3
-            PickUpReward(run)
+            PickUpReward(run, nil, "C3", c3_reward)
             NextSeeds[1] = c3_reward.Seed
             local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
             for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
@@ -285,7 +289,7 @@ for seed=0,100000000 do
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
-                PickUpReward(run)
+                PickUpReward(run, nil, "C4")
                 for _, exit in pairs(filter(c4_exit_requirements, c4_reward.Exits)) do
                   local c5_door = {
                     Room = DeepCopyTable(exit.Room)
@@ -301,7 +305,7 @@ for seed=0,100000000 do
                       local c5 = DeepCopyTable(c5_door.Room)
                       c5.Encounter = c5_reward.Prediction.Encounter
                       run.CurrentRoom = c5
-                      PickUpReward(run, c5_boon_requirements)
+                      PickUpReward(run, c5_boon_requirements, "C5")
                       for _, exit in pairs(filter(c5_exit_requirements, c5_reward.Exits)) do
                         local c6_door = {
                           Room = DeepCopyTable(exit.Room)
