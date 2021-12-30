@@ -174,20 +174,25 @@ fn load_lua_file<'lua, P: AsRef<Path>>(lua_ctx: Context<'lua>, path: &P) -> Resu
 }
 
 fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
+  // println!("rand_int min {} max {}", min, max);
   if max > min {
     let bound = (max as u32).wrapping_sub(min as u32).wrapping_add(1);
     min.wrapping_add(bounded(rng, bound) as i32)
   } else {
+    rng.next_u32(); // advance and ignore result (to keep in sync)
     min
   }
 }
 
 fn bounded(rng: &mut SggPcg, bound: u32) -> u32 {
   let threshold = (u32::MAX - bound + 1) % bound;
+  // println!("bounded: bound {}, threshold {}", bound, threshold);
 
   loop {
     let r = rng.next_u32();
+    // println!("r {}", r);
     if r >= threshold {
+      // println!("ret {}", r % bound);
       return r % bound;
     }
   }

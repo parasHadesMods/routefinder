@@ -1,4 +1,8 @@
 ParasDoorPredictions.Config.PrintNextSeed = false
+if RngDisplayMod then
+  RngDisplayMod.config.ShowSeed = false
+  RngDisplayMod.config.ShowUses = false
+end
 
 Import "Utils/DeepPrint.lua"
 Import "Utils/Matching.lua"
@@ -49,11 +53,6 @@ local function PickUpReward(run, requirements, chamber, reward)
   end
   if lootName == "Boon" then
     lootName = run.CurrentRoom.ForceLootName
-    -- Debuggint (temporary?)
-    if not requirements then
-      print(run.CurrentRoom.ForceLootName, chamber)
-      deep_print(reward.Prediction.Reward)
-    end
     if requirements.ItemName ~= nil then
       local rarity = requirements.Rarity or "Common"
       local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = requirements.ItemName, Rarity = rarity })
@@ -227,6 +226,7 @@ function clean_reward(reward)
   end
 end
 
+DebugFalse=true
 for seed=3181228,3181228 do
   if seed % 10000 == 0 then
     io.stderr:write(seed, "\n")
@@ -286,6 +286,7 @@ for seed=3181228,3181228 do
                 run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
                 run.LastWellShopDepth = c4_reward.Prediction.CurrentRun.LastWellShopDepth
                 -- Enter C4 and pick up reward
+                print("Enter C4")
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
