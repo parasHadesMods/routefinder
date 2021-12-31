@@ -286,7 +286,6 @@ for seed=3181228,3181228 do
                 run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
                 run.LastWellShopDepth = c4_reward.Prediction.CurrentRun.LastWellShopDepth
                 -- Enter C4 and pick up reward
-                print("Enter C4")
                 local c4 = DeepCopyTable(c4_door.Room)
                 c4.Encounter = c4_reward.Prediction.Encounter
                 run.CurrentRoom = c4
