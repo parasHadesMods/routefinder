@@ -226,8 +226,8 @@ function clean_reward(reward)
   end
 end
 
-DebugFalse=true
-for seed=3181228,3181228 do
+--DebugFalse=true
+for seed=0,5000000 do
   if seed % 10000 == 0 then
     io.stderr:write(seed, "\n")
   end
