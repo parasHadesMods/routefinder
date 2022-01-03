@@ -46,7 +46,7 @@ function CreateSecretDoor( currentRun )
   return secretDoor
 end
 
-function PickUpReward(run, requirements, chamber, reward)
+function PickUpReward(run, requirements)
   local lootName = run.CurrentRoom.ChosenRewardType
   if lootName == "LockKeyDropRunProgress" then
     run.NumRerolls = run.NumRerolls + 1
@@ -121,6 +121,33 @@ function clean_reward(reward)
   end
 end
 
+function MoveToNextRoom(previousRun, prediction, door)
+  -- Leave previous room and update history to reflect what happened
+  local run = RunWithUpdatedHistory(previousRun)
+  run.RewardStores = DeepCopyTable(prediction.CurrentRun.RewardStores)
+  run.LastWellShopDepth = prediction.CurrentRun.LastWellShopDepth
+  -- Enter next room and pick up reward
+  local room = DeepCopyTable(door.Room)
+  room.Encounter = prediction.Encounter
+  run.CurrentRoom = room
+  return run
+end
+
+function ExitDoors(run, room_requirements, reward)
+  local doors = {}
+  if room_requirements.Exit == "SecretDoor" then
+    table.insert(doors, CreateSecretDoor(run))
+  else
+    for _, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
+      local door = {
+        Room = DeepCopyTable(exit.Room)
+      }
+      table.insert(doors, door)
+    end
+  end
+  return doors
+end
+
 function FindRoute(requirements)
 --DebugFalse=true
 for seed=2323902,2323902 do
@@ -177,35 +204,15 @@ for seed=2323902,2323902 do
             for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
               if matches(requirements.C4.Room, c4_reward) then
                 c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
-                -- Leave C3 and update history
-                local run = RunWithUpdatedHistory(run)
-                run.RewardStores = DeepCopyTable(c4_reward.Prediction.CurrentRun.RewardStores)
-                run.LastWellShopDepth = c4_reward.Prediction.CurrentRun.LastWellShopDepth
-                -- Enter C4 and pick up reward
-                local c4 = DeepCopyTable(c4_door.Room)
-                c4.Encounter = c4_reward.Prediction.Encounter
-                run.CurrentRoom = c4
-                PickUpReward(run, nil, "C4")
-                for _, exit in pairs(filter(requirements.C4.Exit, c4_reward.Exits)) do
-                  local c5_door = {
-                    Room = DeepCopyTable(exit.Room)
-                  }
+                local run = MoveToNextRoom(run, c3_reward.Prediction, c4_door)
+                PickUpReward(run, requirements.C4.Boon)
+                for _, c5_door in pairs(ExitDoors(run, requirements.C4, c4_reward)) do
                   NextSeeds[1] = c4_reward.Seed
                   for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
                     if matches(requirements.C5.Room, c5_reward) then
-                      -- Leave c4 and update history
-                      local run = RunWithUpdatedHistory(run)
-                      run.RewardStores = DeepCopyTable(c5_reward.Prediction.CurrentRun.RewardStores)
-                      run.LastWellShopDepth = c5_reward.Prediction.CurrentRun.LastWellShopDepth
-                      -- Enter C5 and pick up reward
-                      local c5 = DeepCopyTable(c5_door.Room)
-                      c5.Encounter = c5_reward.Prediction.Encounter
-                      run.CurrentRoom = c5
-                      PickUpReward(run, requirements.C5.Boon, "C5")
-                      for _, exit in pairs(filter(requirements.C5.Exit, c5_reward.Exits)) do
-                        local c6_door = {
-                          Room = DeepCopyTable(exit.Room)
-                        }
+                      local run = MoveToNextRoom(run, c4_reward.Prediction, c5_door)
+                      PickUpReward(run, requirements.C5.Boon)
+                      for _, c6_door in pairs(ExitDoors(run, requirements.C5, c5_reward)) do
                         NextSeeds[1] = c5_reward.Seed
                         for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 25)) do
                           if matches(requirements.C6.Room, c6_reward) then
