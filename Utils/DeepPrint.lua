@@ -4,7 +4,7 @@ function deep_print(t, indent)
   for i = 1, indent do
     indentString = indentString .. "  "
   end 
-  for k,v in pairs(t) do
+  for k,v in orderedPairs(t) do
     if type(v) == "table" then
       print(indentString..k)
       deep_print(v, indent + 1)

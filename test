@@ -1,0 +1,327 @@
+C1
+  C2_Seeds
+    1	1126967639
+    2	1103132922
+    3	-1436111942
+    4	-69956286
+    5	-69956286
+    6	213532405
+    7	-2079513965
+    8	-2079513965
+    9	-1828358572
+    10	-1828358572
+    11	1796516424
+  FirstRoomChaos	false
+  FirstRoomShrine	false
+  HammerData
+    Options
+      1
+        Name	GunExplodingSecondaryTrait
+      2
+        Name	GunShotgunTrait
+      3
+        Name	GunMinigunTrait
+  SecondRoomChaos	false
+  SecondRoomName	A_Combat05
+  SecondRoomReward	LockKeyDropRunProgress
+  SecondRoomRewardStore	MetaProgress
+  Seed	2323902
+  Type	Hammer
+C2
+  Enemies
+    1	PunchingBagUnit
+  Exits
+    1
+      ChaosGate	true
+      Reward	RoomRewardMoneyDrop
+      RoomName	A_Combat10
+    2
+      ChaosGate	false
+      Reward	AphroditeUpgrade
+      RoomName	A_Combat03
+  Seed	-1828358572
+  Uses	24
+  Waves	1
+C3
+  Enemies
+    1	PunchingBagUnit
+  Exits
+    1
+      ChaosGate	false
+      Reward	DemeterUpgrade
+      RoomName	A_Combat15
+    2
+      ChaosGate	false
+      Reward	RoomRewardMaxHealthDrop
+      RoomName	A_Combat24
+  Seed	-1881863344
+  Uses	10
+  Waves	1
+C4
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	AphroditeUpgrade
+      RoomName	A_Reprieve01
+    2
+      ChaosGate	false
+      Reward	DemeterUpgrade
+      RoomName	A_Combat12
+    3
+      ChaosGate	false
+      Reward	AresUpgrade
+      RoomName	A_Combat07
+  Seed	14027283
+  UpgradeOptions
+    1
+      ItemName	ChaosBlessingAlphaStrikeTrait
+      Rarity	Rare
+      SecondaryItemName	ChaosCurseHealthTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingBoonRarityTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseCastAttackTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingSecondaryTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseMoveSpeedTrait
+      Type	TransformingTrait
+  Uses	9
+  Waves	0
+C5
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	Shop
+      RoomName	A_Shop01
+    2
+      ChaosGate	false
+      Reward	LockKeyDropRunProgress
+      RoomName	A_Combat08A
+  Seed	-1040382340
+  Uses	24
+  Waves	0
+C6
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	DionysusUpgrade
+      RoomName	A_MiniBoss03
+  HasCharonBag	true
+  Seed	1298914499
+  StoreOptions
+    1
+      Args
+        ForceLootName	PoseidonUpgrade
+        UpgradeOptions
+          1
+            ItemName	PoseidonWeaponTrait
+            Rarity	Common
+            Type	Trait
+          2
+            ItemName	PoseidonSecondaryTrait
+            Rarity	Common
+            Type	Trait
+          3
+            ItemName	PoseidonRushTrait
+            Rarity	Common
+            Type	Trait
+      Name	BlindBoxLoot
+      Type	Consumable
+      Weight	1
+    2
+      Args
+      Name	StoreRewardLockKeyDrop
+      Type	Consumable
+      Weight	0.5
+    3
+      Args
+        ForceLootName	HermesUpgrade
+        UpgradeOptions
+          1
+            ItemName	UnstoredAmmoDamageTrait
+            Rarity	Legendary
+            Type	Trait
+          2
+            ItemName	HermesShoutDodge
+            Rarity	Common
+            Type	Trait
+          3
+            ItemName	SpeedDamageTrait
+            Rarity	Common
+            Type	Trait
+      Name	HermesUpgradeDrop
+      Type	Consumable
+      Weight	1
+  Uses	7
+  Waves	0
+C1
+  C2_Seeds
+    1	1126967639
+    2	1103132922
+    3	-1436111942
+    4	-69956286
+    5	-69956286
+    6	213532405
+    7	-2079513965
+    8	-2079513965
+    9	-1828358572
+    10	-1828358572
+    11	1796516424
+  FirstRoomChaos	false
+  FirstRoomShrine	false
+  HammerData
+    Options
+      1
+        Name	GunExplodingSecondaryTrait
+      2
+        Name	GunShotgunTrait
+      3
+        Name	GunMinigunTrait
+  SecondRoomChaos	false
+  SecondRoomName	A_Combat05
+  SecondRoomReward	LockKeyDropRunProgress
+  SecondRoomRewardStore	MetaProgress
+  Seed	2323902
+  Type	Hammer
+C2
+  Enemies
+    1	PunchingBagUnit
+  Exits
+    1
+      ChaosGate	true
+      Reward	RoomRewardMoneyDrop
+      RoomName	A_Combat10
+    2
+      ChaosGate	false
+      Reward	AphroditeUpgrade
+      RoomName	A_Combat03
+  Seed	-1828358572
+  Uses	24
+  Waves	1
+C3
+  Enemies
+    1	PunchingBagUnit
+  Exits
+    1
+      ChaosGate	false
+      Reward	DemeterUpgrade
+      RoomName	A_Combat15
+    2
+      ChaosGate	false
+      Reward	RoomRewardMaxHealthDrop
+      RoomName	A_Combat24
+  Seed	-1881863344
+  Uses	10
+  Waves	1
+C4
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	AphroditeUpgrade
+      RoomName	A_Reprieve01
+    2
+      ChaosGate	false
+      Reward	DemeterUpgrade
+      RoomName	A_Combat12
+    3
+      ChaosGate	false
+      Reward	AresUpgrade
+      RoomName	A_Combat07
+  Seed	14027283
+  UpgradeOptions
+    1
+      ItemName	ChaosBlessingAlphaStrikeTrait
+      Rarity	Rare
+      SecondaryItemName	ChaosCurseHealthTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingBoonRarityTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseCastAttackTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingSecondaryTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseMoveSpeedTrait
+      Type	TransformingTrait
+  Uses	9
+  Waves	0
+C5
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	Shop
+      RoomName	A_Shop01
+    2
+      ChaosGate	false
+      Reward	LockKeyDropRunProgress
+      RoomName	A_Combat08A
+  Seed	-1040382340
+  Uses	24
+  Waves	0
+C6
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	GiftDropRunProgress
+      RoomName	A_Combat07
+  HasCharonBag	true
+  Seed	-320650907
+  StoreOptions
+    1
+      Args
+        BoughtFromShop	true
+        Cost	150.0
+        DoesNotBlockExit	true
+        ForceLootName	ZeusUpgrade
+        UpgradeOptions
+          1
+            ItemName	ZeusWeaponTrait
+            Rarity	Common
+            Type	Trait
+          2
+            ItemName	ZeusSecondaryTrait
+            Rarity	Common
+            Type	Trait
+          3
+            ItemName	ZeusRangedTrait
+            Rarity	Common
+            Type	Trait
+      Name	RandomLoot
+      Type	Boon
+      Weight	5
+    2
+      Args
+      Name	RoomRewardHealDrop
+      Type	Consumable
+      Weight	2.5
+    3
+      Args
+        ForceLootName	HermesUpgrade
+        UpgradeOptions
+          1
+            ItemName	HermesSecondaryTrait
+            Rarity	Common
+            Type	Trait
+          2
+            ItemName	ChamberGoldTrait
+            Rarity	Common
+            Type	Trait
+          3
+            ItemName	UnstoredAmmoDamageTrait
+            Rarity	Legendary
+            Type	Trait
+      Name	HermesUpgradeDrop
+      Type	Consumable
+      Weight	1
+  Uses	17
+  Waves	0
