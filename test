@@ -89,6 +89,22 @@ C4
       Rarity	Common
       SecondaryItemName	ChaosCurseMoveSpeedTrait
       Type	TransformingTrait
+  UpgradeOptionsReroll
+    1
+      ItemName	ChaosBlessingRangedTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseTrapDamageTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingDashAttackTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseHealthTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingAlphaStrikeTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCursePrimaryAttackTrait
+      Type	TransformingTrait
   Uses	9
   Waves	0
 C5
@@ -103,6 +119,32 @@ C5
       Reward	LockKeyDropRunProgress
       RoomName	A_Combat08A
   Seed	-1040382340
+  UpgradeOptions
+    1
+      ItemName	AphroditeSecondaryTrait
+      Rarity	Epic
+      Type	Trait
+    2
+      ItemName	AphroditeRangedTrait
+      Rarity	Common
+      Type	Trait
+    3
+      ItemName	AphroditeRushTrait
+      Rarity	Common
+      Type	Trait
+  UpgradeOptionsReroll
+    1
+      ItemName	AphroditeWeaponTrait
+      Rarity	Epic
+      Type	Trait
+    2
+      ItemName	AphroditeRushTrait
+      Rarity	Epic
+      Type	Trait
+    3
+      ItemName	AphroditeShoutTrait
+      Rarity	Common
+      Type	Trait
   Uses	24
   Waves	0
 C6
@@ -251,6 +293,22 @@ C4
       Rarity	Common
       SecondaryItemName	ChaosCurseMoveSpeedTrait
       Type	TransformingTrait
+  UpgradeOptionsReroll
+    1
+      ItemName	ChaosBlessingRangedTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseTrapDamageTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingDashAttackTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseHealthTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingAlphaStrikeTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCursePrimaryAttackTrait
+      Type	TransformingTrait
   Uses	9
   Waves	0
 C5
@@ -265,6 +323,32 @@ C5
       Reward	LockKeyDropRunProgress
       RoomName	A_Combat08A
   Seed	-1040382340
+  UpgradeOptions
+    1
+      ItemName	AphroditeSecondaryTrait
+      Rarity	Epic
+      Type	Trait
+    2
+      ItemName	AphroditeRangedTrait
+      Rarity	Common
+      Type	Trait
+    3
+      ItemName	AphroditeRushTrait
+      Rarity	Common
+      Type	Trait
+  UpgradeOptionsReroll
+    1
+      ItemName	AphroditeWeaponTrait
+      Rarity	Epic
+      Type	Trait
+    2
+      ItemName	AphroditeRushTrait
+      Rarity	Epic
+      Type	Trait
+    3
+      ItemName	AphroditeShoutTrait
+      Rarity	Common
+      Type	Trait
   Uses	24
   Waves	0
 C6

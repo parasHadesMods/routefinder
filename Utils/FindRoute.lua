@@ -118,6 +118,8 @@ function clean_reward(reward)
   if reward.Prediction then
     reward.StoreOptions = reward.Prediction.StoreOptions
     reward.HasCharonBag = reward.Prediction.HasCharonBag
+    reward.UpgradeOptions = reward.Prediction.UpgradeOptions
+    reward.UpgradeOptionsReroll = reward.Prediction.UpgradeOptionsReroll
     reward.Prediction = nil
   end
   if reward.Exits then
@@ -228,22 +230,12 @@ for seed=2323902,2323902 do
             local run = MoveToNextRoom(run, c3_reward, c3_door)
             PickUpReward(run, requirements.C3.Boon)
             local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
-            for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
-              if matches(requirements.C4.Room, c4_reward) then
-                c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
-                local run = MoveToNextRoom(run, c4_reward, c4_door)
-                PickUpReward(run, requirements.C4.Boon)
-                for _, c5_door in pairs(ExitDoors(run, requirements.C4, c4_reward)) do
-                  local result = {
-                    C1 = c1_reward,
-                    C2 = c2_reward,
-                    C3 = c3_reward,
-                    C4 = c4_reward
-                  }
-                  FindRemaining(run, c5_door, requirements, "C5", result)
-                end
-              end
-            end
+            local result = {
+              C1 = c1_reward,
+              C2 = c2_reward,
+              C3 = c3_reward
+            }
+            FindRemaining(run, c4_door, requirements, "C4", result)
           end
         end
       end
