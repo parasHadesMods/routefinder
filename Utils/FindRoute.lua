@@ -115,21 +115,24 @@ function GetIdsByType(args)
 end
 
 function clean_reward(reward)
+  reward.StoreOptions = reward.Prediction.StoreOptions
+  reward.HasCharonBag = reward.Prediction.HasCharonBag
   reward.Prediction = nil
   for _, exit in pairs(reward.Exits) do
     exit.Room = nil
   end
 end
 
-function MoveToNextRoom(previousRun, prediction, door)
+function MoveToNextRoom(previousRun, reward, door)
   -- Leave previous room and update history to reflect what happened
   local run = RunWithUpdatedHistory(previousRun)
-  run.RewardStores = DeepCopyTable(prediction.CurrentRun.RewardStores)
-  run.LastWellShopDepth = prediction.CurrentRun.LastWellShopDepth
+  run.RewardStores = DeepCopyTable(reward.Prediction.CurrentRun.RewardStores)
+  run.LastWellShopDepth = reward.Prediction.CurrentRun.LastWellShopDepth
   -- Enter next room and pick up reward
   local room = DeepCopyTable(door.Room)
-  room.Encounter = prediction.Encounter
+  room.Encounter = reward.Prediction.Encounter
   run.CurrentRoom = room
+  NextSeeds[1] = reward.Seed
   return run
 end
 
@@ -146,6 +149,43 @@ function ExitDoors(run, room_requirements, reward)
     end
   end
   return doors
+end
+
+local NextCid = {
+  C1 = "C2",
+  C2 = "C3",
+  C3 = "C4",
+  C4 = "C5",
+  C5 = "C6",
+  C6 = "C7"
+}
+
+local Ranges = {
+  C2 = { Min = 15, Max = 25 },
+  C3 = { Min = 7,  Max = 17 },
+  C4 = { Min = 5,  Max = 25 },
+  C5 = { Min = 6,  Max = 26 },
+  C6 = { Min = 5,  Max = 25 }
+}
+
+function FindRemaining(run, door, requirements, cid, results)
+  for _, reward in pairs(PredictRoomOptions(run, door, Ranges[cid].Min, Ranges[cid].Max)) do
+    if matches(requirements[cid].Room, reward) then
+      local nextCid = NextCid[cid]
+      clean_reward(reward)
+      results[cid] = reward
+      if requirements[nextCid] then
+        local run = MoveToNextRoom(run, reward, door)
+        PickUpReward(run, requirements[cid].Boon)
+        for _, door in pairs(ExitDoors(run, requirements[cid], reward)) do
+          FindRemaining(run, door, requirements, nextCid, results)
+        end
+      else
+        deep_print(results)
+      end
+      results[cid] = nil
+    end
+  end
 end
 
 function FindRoute(requirements)
@@ -172,65 +212,39 @@ for seed=2323902,2323902 do
       end
      table.insert(c1_reward.C2_Seeds, candidate.Seed)
     end
+    PickUpReward(run) -- in C1
     for _, c2_reward in pairs(c2_matches) do
-      -- Leave C1 and update history to reflect what happened
-      PickUpReward(run)
-      local run = RunWithUpdatedHistory(run)
-      run.RewardStores = DeepCopyTable(c2_reward.Prediction.CurrentRun.RewardStores)
-      run.LastWellShopDepth = c2_reward.Prediction.CurrentRun.LastWellShopDepth
-      -- Enter C2 and pick up reward
-      local c2 = DeepCopyTable(c2_door.Room)
-      c2.Encounter = c2_reward.Prediction.Encounter
-      run.CurrentRoom = c2
-      PickUpReward(run, nil, "C2")
-      for _, exit in pairs(filter(requirements.C2.Exit, c2_reward.Exits)) do
-        local c3_door = {
-          Room = DeepCopyTable(exit.Room)
-        }
-        NextSeeds[1] = c2_reward.Seed
+      local run = MoveToNextRoom(run, c2_reward, c2_door)
+      PickUpReward(run, requirements.C2.Boon)
+      for _, c3_door in pairs(ExitDoors(run, requirements.C2, c2_reward)) do
         for _, c3_reward in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
           if matches(requirements.C3.Room, c3_reward) then
-            -- Leave C2 and update history
-            local run = RunWithUpdatedHistory(run)
-            run.RewardStores = DeepCopyTable(c3_reward.Prediction.CurrentRun.RewardStores)
-            run.LastWellShopDepth = c3_reward.Prediction.CurrentRun.LastWellShopDepth
-            -- Enter C3 and pick up reward
-            local c3 = DeepCopyTable(c3_door.Room)
-            c3.Encounter = c3_reward.Prediction.Encounter
-            run.CurrentRoom = c3
-            PickUpReward(run, nil, "C3", c3_reward)
-            NextSeeds[1] = c3_reward.Seed
+            local run = MoveToNextRoom(run, c3_reward, c3_door)
+            PickUpReward(run, requirements.C3.Boon)
             local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
             for _, c4_reward in pairs(PredictRoomOptions(run, c4_door, 5, 25)) do
               if matches(requirements.C4.Room, c4_reward) then
                 c4_reward.UpgradeOptions = c4_reward.Prediction.UpgradeOptions
-                local run = MoveToNextRoom(run, c3_reward.Prediction, c4_door)
+                local run = MoveToNextRoom(run, c4_reward, c4_door)
                 PickUpReward(run, requirements.C4.Boon)
                 for _, c5_door in pairs(ExitDoors(run, requirements.C4, c4_reward)) do
-                  NextSeeds[1] = c4_reward.Seed
                   for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
                     if matches(requirements.C5.Room, c5_reward) then
-                      local run = MoveToNextRoom(run, c4_reward.Prediction, c5_door)
+                      local run = MoveToNextRoom(run, c5_reward, c5_door)
                       PickUpReward(run, requirements.C5.Boon)
                       for _, c6_door in pairs(ExitDoors(run, requirements.C5, c5_reward)) do
-                        NextSeeds[1] = c5_reward.Seed
-                        for _, c6_reward in pairs(PredictRoomOptions(run, c6_door, 5, 25)) do
-                          if matches(requirements.C6.Room, c6_reward) then
-                            clean_reward(c2_reward)
-                            clean_reward(c3_reward)
-                            clean_reward(c4_reward)
-                            clean_reward(c5_reward)
-                            c6_reward.StoreOptions = c6_reward.Prediction.StoreOptions
-                            c6_reward.HasCharonBag = c6_reward.Prediction.HasCharonBag
-                            clean_reward(c6_reward)
-                            deep_print({ C1 = c1_reward})
-                            deep_print({ C2 = c2_reward})
-                            deep_print({ C3 = c3_reward})
-                            deep_print({ C4 = c4_reward})
-                            deep_print({ C5 = c5_reward})
-                            deep_print({ C6 = c6_reward})
-                          end
-                        end
+                        clean_reward(c2_reward)
+                        clean_reward(c3_reward)
+                        clean_reward(c4_reward)
+                        clean_reward(c5_reward)
+                        local result = {
+                          C1 = c1_reward,
+                          C2 = c2_reward,
+                          C3 = c3_reward,
+                          C4 = c4_reward,
+                          C5 = c5_reward,
+                        }
+                        FindRemaining(run, c6_door, requirements, "C6", result)
                       end
                     end
                   end
