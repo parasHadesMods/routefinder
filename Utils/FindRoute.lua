@@ -183,7 +183,7 @@ function FindRemaining(run, door, requirements, i, results)
 end
 
 function FindRoute(requirements)
---DebugFalse=true
+  --DebugFalse=true
   for seed=requirements.Seed.Min,requirements.Seed.Max do
     if seed % 10000 == 0 then
       io.stderr:write(seed, "\n")
