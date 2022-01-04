@@ -61,11 +61,9 @@ local requirements = {
   C4 = {
     Offset = { Min = 5, Max = 25 },
     Room = {
-      Prediction = {
-        UpgradeOptions = function(options)
-          return one_matches({ SecondaryItemName = "ChaosCurseHealthTrait" }, options)
-        end
-      }
+      UpgradeOptions = function(options)
+        return one_matches({ SecondaryItemName = "ChaosCurseHealthTrait" }, options)
+      end
     },
     Exit = {
       Reward = "AphroditeUpgrade",
@@ -75,11 +73,9 @@ local requirements = {
   C5 = {
     Offset = { Min = 6, Max = 26 },
     Room = {
-      Prediction = {
-        UpgradeOptionsReroll = function(reroll_options)
-          return one_matches(c5_boon, reroll_options)
-        end
-      }
+      UpgradeOptionsReroll = function(reroll_options)
+        return one_matches(c5_boon, reroll_options)
+      end
     },
     Boon = c5_boon,
     Exit = { RoomName = "A_Shop01" }
@@ -87,21 +83,19 @@ local requirements = {
   C6 = {
     Offset = { Min = 5, Max = 25 },
     Room = {
-      Prediction = {
-        HasCharonBag = true,
-        StoreOptions = function(store_items)
-          return one_matches({
-              Name = "HermesUpgradeDrop",
-              Args = {
-                UpgradeOptions = function(options)
-                  return one_matches({
-                      Rarity = "Legendary"
-                                     }, options)
-                end
-              }
-          }, store_items)
-        end
-      }
+      HasCharonBag = true,
+      StoreOptions = function(store_items)
+        return one_matches({
+            Name = "HermesUpgradeDrop",
+            Args = {
+              UpgradeOptions = function(options)
+                return one_matches({
+                    Rarity = "Legendary"
+                                   }, options)
+              end
+            }
+        }, store_items)
+      end
     }
   }
 }

@@ -71,7 +71,18 @@ function PredictRoomOptions( run, door, range )
   for uses=range.Min, range.Max do
     RandomSynchronize(uses)
     local prediction = PredictLoot(door)
-    local summary = { Seed = prediction.Seed, Waves = 0, Enemies = {}, Exits = {}, Prediction = prediction }
+    local summary = {
+      Seed = prediction.Seed,
+      Uses = uses,
+      StoreOptions = prediction.StoreOptions,
+      HasCharonBag = prediction.HasCharonBag,
+      UpgradeOptions = prediction.UpgradeOptions,
+      UpgradeOptionsReroll = prediction.UpgradeOptionsReroll,
+      Waves = 0,
+      Enemies = {},
+      Exits = {},
+      Prediction = prediction
+    }
     local addedEnemy = {}
     if prediction.Encounter.SpawnWaves then
       for i, wave in pairs(prediction.Encounter.SpawnWaves) do
@@ -96,7 +107,6 @@ function PredictRoomOptions( run, door, range )
         table.insert(summary.Exits, exit)
       end
     end
-    summary.Uses = uses
     table.insert(predictions, summary)
   end
   RandomSynchronize(oldUses) -- reset
@@ -116,10 +126,6 @@ end
 
 function clean_reward(reward)
   if reward.Prediction then
-    reward.StoreOptions = reward.Prediction.StoreOptions
-    reward.HasCharonBag = reward.Prediction.HasCharonBag
-    reward.UpgradeOptions = reward.Prediction.UpgradeOptions
-    reward.UpgradeOptionsReroll = reward.Prediction.UpgradeOptionsReroll
     reward.Prediction = nil
   end
   if reward.Exits then
