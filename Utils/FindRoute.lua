@@ -115,11 +115,15 @@ function GetIdsByType(args)
 end
 
 function clean_reward(reward)
-  reward.StoreOptions = reward.Prediction.StoreOptions
-  reward.HasCharonBag = reward.Prediction.HasCharonBag
-  reward.Prediction = nil
-  for _, exit in pairs(reward.Exits) do
-    exit.Room = nil
+  if reward.Prediction then
+    reward.StoreOptions = reward.Prediction.StoreOptions
+    reward.HasCharonBag = reward.Prediction.HasCharonBag
+    reward.Prediction = nil
+  end
+  if reward.Exits then
+    for _, exit in pairs(reward.Exits) do
+      exit.Room = nil
+    end
   end
 end
 
@@ -172,7 +176,6 @@ function FindRemaining(run, door, requirements, cid, results)
   for _, reward in pairs(PredictRoomOptions(run, door, Ranges[cid].Min, Ranges[cid].Max)) do
     if matches(requirements[cid].Room, reward) then
       local nextCid = NextCid[cid]
-      clean_reward(reward)
       results[cid] = reward
       if requirements[nextCid] then
         local run = MoveToNextRoom(run, reward, door)
@@ -181,6 +184,9 @@ function FindRemaining(run, door, requirements, cid, results)
           FindRemaining(run, door, requirements, nextCid, results)
         end
       else
+        for _, reward in pairs(results) do
+          clean_reward(reward)
+        end
         deep_print(results)
       end
       results[cid] = nil
@@ -228,26 +234,13 @@ for seed=2323902,2323902 do
                 local run = MoveToNextRoom(run, c4_reward, c4_door)
                 PickUpReward(run, requirements.C4.Boon)
                 for _, c5_door in pairs(ExitDoors(run, requirements.C4, c4_reward)) do
-                  for _, c5_reward in pairs(PredictRoomOptions(run, c5_door, 6, 26)) do
-                    if matches(requirements.C5.Room, c5_reward) then
-                      local run = MoveToNextRoom(run, c5_reward, c5_door)
-                      PickUpReward(run, requirements.C5.Boon)
-                      for _, c6_door in pairs(ExitDoors(run, requirements.C5, c5_reward)) do
-                        clean_reward(c2_reward)
-                        clean_reward(c3_reward)
-                        clean_reward(c4_reward)
-                        clean_reward(c5_reward)
-                        local result = {
-                          C1 = c1_reward,
-                          C2 = c2_reward,
-                          C3 = c3_reward,
-                          C4 = c4_reward,
-                          C5 = c5_reward,
-                        }
-                        FindRemaining(run, c6_door, requirements, "C6", result)
-                      end
-                    end
-                  end
+                  local result = {
+                    C1 = c1_reward,
+                    C2 = c2_reward,
+                    C3 = c3_reward,
+                    C4 = c4_reward
+                  }
+                  FindRemaining(run, c5_door, requirements, "C5", result)
                 end
               end
             end
