@@ -18,7 +18,7 @@ local c5_boon = {
 
 local requirements = {
   Seed = { Min = 2323902, Max = 2323902 },
-  C1 = {  -- different format due to Ello's
+  C1 = {  -- different format since Ello's is used for C1 instead of Para's
     Type = "Hammer",
     SecondRoomRewardStore = "MetaProgress",
     FirstRoomChaos = false,
