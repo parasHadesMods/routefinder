@@ -157,15 +157,6 @@ function ExitDoors(run, room_requirements, reward)
   return doors
 end
 
-local NextCid = {
-  C1 = "C2",
-  C2 = "C3",
-  C3 = "C4",
-  C4 = "C5",
-  C5 = "C6",
-  C6 = "C7"
-}
-
 function FindRemaining(run, door, requirements, i, results)
   local seeds = {}
   local cid = "C"..i
