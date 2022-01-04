@@ -63,12 +63,12 @@ function PickUpReward(run, requirements)
   run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
 end
 
-function PredictRoomOptions( run, door, minUses, maxUses)
+function PredictRoomOptions( run, door, range )
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
   CurrentRun = run
   local predictions = {}
-  for uses=minUses,maxUses do
+  for uses=range.Min, range.Max do
     RandomSynchronize(uses)
     local prediction = PredictLoot(door)
     local summary = { Seed = prediction.Seed, Waves = 0, Enemies = {}, Exits = {}, Prediction = prediction }
@@ -166,24 +166,19 @@ local NextCid = {
   C6 = "C7"
 }
 
-local Ranges = {
-  C2 = { Min = 15, Max = 25 },
-  C3 = { Min = 7,  Max = 17 },
-  C4 = { Min = 5,  Max = 25 },
-  C5 = { Min = 6,  Max = 26 },
-  C6 = { Min = 5,  Max = 25 }
-}
-
-function FindRemaining(run, door, requirements, cid, results)
-  for _, reward in pairs(PredictRoomOptions(run, door, Ranges[cid].Min, Ranges[cid].Max)) do
+function FindRemaining(run, door, requirements, i, results)
+  local seeds = {}
+  local cid = "C"..i
+  local nextCid = "C"..(i+1)
+  for _, reward in pairs(PredictRoomOptions(run, door, requirements[cid].Offset)) do
+    table.insert(seeds, reward.Seed)
     if matches(requirements[cid].Room, reward) then
-      local nextCid = NextCid[cid]
       results[cid] = reward
       if requirements[nextCid] then
         local run = MoveToNextRoom(run, reward, door)
         PickUpReward(run, requirements[cid].Boon)
         for _, door in pairs(ExitDoors(run, requirements[cid], reward)) do
-          FindRemaining(run, door, requirements, nextCid, results)
+          FindRemaining(run, door, requirements, i+1, results)
         end
       else
         for _, reward in pairs(results) do
@@ -198,48 +193,23 @@ end
 
 function FindRoute(requirements)
 --DebugFalse=true
-for seed=2323902,2323902 do
-  if seed % 10000 == 0 then
-    io.stderr:write(seed, "\n")
-  end
-  local c1_reward = PredictStartingRoomReward(seed)
-  c1_reward.Seed = seed
+  for seed=requirements.Seed.Min,requirements.Seed.Max do
+    if seed % 10000 == 0 then
+      io.stderr:write(seed, "\n")
+    end
+    local c1_reward = PredictStartingRoomReward(seed)
+    c1_reward.Seed = seed
 
-  if matches(requirements.C1, c1_reward) then
-    local c2_matches = {}
-    c1_reward.C2_Seeds = {}
-    local run = CreateRun()
-    RandomSynchronize(2) -- ChooseNextRoomData
-    local c2_door = CreateDoor(
-      c1_reward.SecondRoomName,
-      c1_reward.SecondRoomReward,
-      c1_reward.SecondRoomRewardStore)
-    for _, candidate in pairs(PredictRoomOptions(run, c2_door, 15, 25)) do
-      if matches(requirements.C2.Room, candidate) then
-        table.insert(c2_matches, candidate)
-      end
-     table.insert(c1_reward.C2_Seeds, candidate.Seed)
-    end
-    PickUpReward(run) -- in C1
-    for _, c2_reward in pairs(c2_matches) do
-      local run = MoveToNextRoom(run, c2_reward, c2_door)
-      PickUpReward(run, requirements.C2.Boon)
-      for _, c3_door in pairs(ExitDoors(run, requirements.C2, c2_reward)) do
-        for _, c3_reward in pairs(PredictRoomOptions(run, c3_door, 7, 17)) do
-          if matches(requirements.C3.Room, c3_reward) then
-            local run = MoveToNextRoom(run, c3_reward, c3_door)
-            PickUpReward(run, requirements.C3.Boon)
-            local c4_door = CreateSecretDoor( run ) -- hard-coded, need some way to indicate
-            local result = {
-              C1 = c1_reward,
-              C2 = c2_reward,
-              C3 = c3_reward
-            }
-            FindRemaining(run, c4_door, requirements, "C4", result)
-          end
-        end
-      end
+    if matches(requirements.C1, c1_reward) then
+      local run = CreateRun()
+      PickUpReward(run) -- in C1
+      RandomSynchronize(2) -- ChooseNextRoomData
+      local c2_door = CreateDoor(
+        c1_reward.SecondRoomName,
+        c1_reward.SecondRoomReward,
+        c1_reward.SecondRoomRewardStore)
+      local result = { C1 = c1_reward }
+      FindRemaining(run, c2_door, requirements, 2, result)
     end
   end
-end
 end

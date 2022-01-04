@@ -106,25 +106,31 @@ local c6_requirements = {
 }
 
 local requirements = {
+  Seed = { Min = 2323902, Max = 2323902 },
   C1 = c1_requirements, -- different format due to Ello's
   C2 = {
+    Offset = { Min = 15, Max = 25 },
     Room = c2_requirements,
     Exit = c2_exit_requirements
   },
   C3 = {
+    Offset = { Min = 7, Max = 17 },
     Room = c3_requirements,
     Exit = "SecretDoor" -- not requirements format?
   },
   C4 = {
+    Offset = { Min = 5, Max = 25 },
     Room = c4_requirements,
     Exit = c4_exit_requirements
   },
   C5 = {
+    Offset = { Min = 6, Max = 26 },
     Room = c5_requirements,
     Boon = c5_boon_requirements,
     Exit = c5_exit_requirements
   },
   C6 = {
+    Offset = { Min = 5, Max = 25 },
     Room = c6_requirements
   }
 }
