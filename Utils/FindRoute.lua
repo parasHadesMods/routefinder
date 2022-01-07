@@ -15,18 +15,18 @@ function CreateRun()
   return run
 end
 
-function CreateDoor( roomName, rewardType, rewardStore )
-  local roomData = RoomData[roomName]
+function CreateC2Door( reward )
+  local roomData = RoomData[reward.SecondRoomName]
   local door = {
     Room = CreateRoom( roomData, { SkipChooseReward = true, SkipChooseEncounter = true } )
   }
-  if rewardType == "AphroditeUpgrade" then
+  if Contains(EllosBoonSelectorMod.BoonGods, reward.SecondRoomReward) then
     door.Room.ChosenRewardType = "Boon"
-    door.Room.ForceLootName = rewardType
+    door.Room.ForceLootName = reward.SecondRoomReward .. "Upgrade"
   else
-    door.Room.ChosenRewardType = rewardType
+    door.Room.ChosenRewardType = reward.SecondRoomReward
   end
-  door.Room.RewardStoreName = rewardStore
+  door.Room.RewardStoreName = reward.SecondRoomRewardStore
   return door
 end
 
@@ -104,6 +104,7 @@ function PredictRoomOptions( run, door, range )
           exit.Reward = reward.RewardType
         end
         exit.ChaosGate = reward.ChaosGate
+        --exit.WellShop = reward.WellShop
         table.insert(summary.Exits, exit)
       end
     end
@@ -153,7 +154,7 @@ function ExitDoors(run, room_requirements, reward)
   if room_requirements.Exit == "SecretDoor" then
     table.insert(doors, CreateSecretDoor(run))
   else
-    for _, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
+    for k, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
       local door = {
         Room = DeepCopyTable(exit.Room)
       }
@@ -163,33 +164,45 @@ function ExitDoors(run, room_requirements, reward)
   return doors
 end
 
-function FindRemaining(run, door, requirements, i, results)
-  local seeds = {}
+function CheckForced(forcedSeed, seed)
+  if forcedSeed == nil then
+    return true
+  else
+    return forcedSeed == seed
+  end
+end
+
+function FindRemaining(run, doors, requirements, i, results)
   local cid = "C"..i
   local nextCid = "C"..(i+1)
-  for _, reward in pairs(PredictRoomOptions(run, door, requirements[cid].Offset)) do
-    table.insert(seeds, reward.Seed)
-    if matches(requirements[cid].Room, reward) then
-      results[cid] = reward
-      if requirements[nextCid] then
-        local run = MoveToNextRoom(run, reward, door)
-        PickUpReward(run, requirements[cid].Boon)
-        for _, door in pairs(ExitDoors(run, requirements[cid], reward)) do
-          FindRemaining(run, door, requirements, i+1, results)
+  -- Standing in front of a set of doors. Look at each door in turn.
+  for _, door in pairs(doors) do
+    -- Predict what is behind each door; this depends on the rng offset.
+    for _, reward in pairs(PredictRoomOptions(run, door, requirements[cid].Offset)) do
+      if CheckForced(requirements[cid].ForcedSeed, reward.Seed) and matches(requirements[cid].Room, reward) then
+        -- If we found a door that we like,
+        results[cid] = reward
+        if requirements[nextCid] then
+          -- go through that door, pick up the reward, and find out what new doors we're presented with.
+          local run = MoveToNextRoom(run, reward, door)
+          PickUpReward(run, requirements[cid].Boon)
+          local doors = ExitDoors(run, requirements[cid], reward)
+          -- Now we're standing in front of another set of doors.
+          FindRemaining(run, doors, requirements, i+1, results)
+        else
+          -- or, if there are no more requirements, print the result and exit.
+          for _, reward in pairs(results) do
+            clean_reward(reward)
+          end
+          deep_print(results)
         end
-      else
-        for _, reward in pairs(results) do
-          clean_reward(reward)
-        end
-        deep_print(results)
+        results[cid] = nil
       end
-      results[cid] = nil
     end
   end
 end
 
 function FindRoute(requirements)
-  --DebugFalse=true
   for seed=requirements.Seed.Min,requirements.Seed.Max do
     if seed % 10000 == 0 then
       io.stderr:write(seed, "\n")
@@ -201,12 +214,9 @@ function FindRoute(requirements)
       local run = CreateRun()
       PickUpReward(run) -- in C1
       RandomSynchronize(2) -- ChooseNextRoomData
-      local c2_door = CreateDoor(
-        c1_reward.SecondRoomName,
-        c1_reward.SecondRoomReward,
-        c1_reward.SecondRoomRewardStore)
+      local doors = { CreateC2Door(c1_reward) }
       local result = { C1 = c1_reward }
-      FindRemaining(run, c2_door, requirements, 2, result)
+      FindRemaining(run, doors, requirements, 2, result)
     end
   end
 end

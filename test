@@ -332,7 +332,7 @@ C6
   Exits
     1
       ChaosGate	false
-      Reward	GiftDropRunProgress
+      Reward	StackUpgrade
       RoomName	A_Combat07
   HasCharonBag	true
   Seed	-320650907
