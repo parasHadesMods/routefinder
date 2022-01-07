@@ -15,7 +15,7 @@ function CreateRun()
   return run
 end
 
-function CreateC2Door( reward )
+function CreateC2Door( run, reward )
   local roomData = RoomData[reward.SecondRoomName]
   local door = {
     Room = CreateRoom( roomData, { SkipChooseReward = true, SkipChooseEncounter = true } )
@@ -28,6 +28,25 @@ function CreateC2Door( reward )
   end
   door.Room.RewardStoreName = reward.SecondRoomRewardStore
   return door
+end
+
+function UpdateRewardStoresForC2(run, reward)
+  local rewardStores = run.RewardStores
+  local eligibleRewards = {}
+  for key, candidate in pairs(RewardStoreData[reward.SecondRoomRewardStore]) do
+    if IsSecondRoomRewardEligible(candidate.GameStateRequirements, reward.Type) then
+      table.insert(eligibleRewards, key)
+    end
+  end
+  RandomSynchronize(4)
+  local selectedKey = GetRandomValue( eligibleRewards )
+  rewardStores[reward.SecondRoomRewardStore][selectedKey] = nil
+  RemoveValueAndCollapse( eligibleRewards, selectedKey )
+  if reward.FirstRoomShrine then
+    RandomSynchronize(4)
+    selectedKey = GetRandomValue( eligibleRewards )
+    rewardStores[reward.SecondRoomRewardStore][selectedKey] = nil
+  end
 end
 
 function CreateSecretDoor( currentRun )
@@ -97,14 +116,13 @@ function PredictRoomOptions( run, door, range )
     end
     if prediction.NextExitRewards then
       for k, reward in pairs(prediction.NextExitRewards) do
-        local exit = { RoomName = reward.RoomName, Room = reward.Room }
-        if reward.ForceLootName then
-          exit.Reward = reward.ForceLootName
-        else
-          exit.Reward = reward.RewardType
-        end
-        exit.ChaosGate = reward.ChaosGate
-        --exit.WellShop = reward.WellShop
+        local exit = {
+          RoomName = reward.RoomName,
+          Room = reward.Room,
+          ChaosGate = reward.ChaosGate,
+          WellShop = reward.WellShop,
+          Reward = reward.ForceLootName or reward.RewardType
+        }
         table.insert(summary.Exits, exit)
       end
     end
@@ -176,6 +194,7 @@ function FindRemaining(run, doors, requirements, i, results)
   local cid = "C"..i
   local nextCid = "C"..(i+1)
   -- Standing in front of a set of doors. Look at each door in turn.
+  local seed = NextSeeds[1]
   for _, door in pairs(doors) do
     -- Predict what is behind each door; this depends on the rng offset.
     for _, reward in pairs(PredictRoomOptions(run, door, requirements[cid].Offset)) do
@@ -198,6 +217,7 @@ function FindRemaining(run, doors, requirements, i, results)
         end
         results[cid] = nil
       end
+      NextSeeds[1] = seed -- rewind on return
     end
   end
 end
@@ -213,8 +233,9 @@ function FindRoute(requirements)
     if matches(requirements.C1, c1_reward) then
       local run = CreateRun()
       PickUpReward(run) -- in C1
+      UpdateRewardStoresForC2(run, c1_reward)
       RandomSynchronize(2) -- ChooseNextRoomData
-      local doors = { CreateC2Door(c1_reward) }
+      local doors = { CreateC2Door(run, c1_reward) }
       local result = { C1 = c1_reward }
       FindRemaining(run, doors, requirements, 2, result)
     end

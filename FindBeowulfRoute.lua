@@ -16,10 +16,6 @@ local c2_boon = {
   ItemName = "PoseidonRangedTrait", -- Even for Beowulf, Poseidon doesn't use ShieldLoadAmmo_
   Rarity = "Epic"
 }
-local c5_boon = {
-  ItemName = "ArtemisWeaponTrait"
-  --Rarity = "Epic"
-}
 
 local requirements = {
   Seed = { Min = 588384, Max = 588384 },
@@ -28,9 +24,6 @@ local requirements = {
     SecondRoomReward= "Poseidon", -- not PoseidonUpgrade
     FirstRoomChaos = false,
     SecondRoomChaos = true,
-    --SecondRoomName = function(roomName)
-    --  return matches_one(small_rooms, roomName)
-    --end,
     HammerData = {
       Options = function(options)
         return one_matches({ Name = "ShieldRushProjectileTrait"}, options)
@@ -58,26 +51,28 @@ local requirements = {
         }, options)
       end
     },
-    Exit = {
-      --Reward = "GemDropRunProgress"
-    }
+    Exit = {}
   },
   C4 = {
     Offset = { Min = 5, Max = 30 },
     ForcedSeed = 444389298,
     Room = {},
     Exit = {
-      --WellShop = true
+      WellShop = true
     }
   },
   C5 = {
     Offset = { Min = 5, Max = 30 },
     ForcedSeed = 1501741483,
-    Room = {},
+    Room = {
+      StoreOptions = function(options)
+        return one_matches({ Name = "TemporaryForcedSecretDoorTrait"}, options)
+      end
+    },
     Exit = {}
   }
 }
 
-DebugFalse=true
+--DebugFalse=true
 --ParasDoorPredictions.Config.PrintRngUses = true
 FindRoute(requirements)

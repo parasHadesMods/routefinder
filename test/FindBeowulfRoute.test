@@ -1,0 +1,179 @@
+C1
+  FirstRoomChaos	false
+  FirstRoomShrine	true
+  HammerData
+    Options
+      1
+        Name	ShieldDashAOETrait
+      2
+        Name	ShieldRushProjectileTrait
+      3
+        Name	ShieldThrowFastTrait
+  SecondRoomChaos	true
+  SecondRoomName	A_Combat03
+  SecondRoomReward	Poseidon
+  SecondRoomRewardStore	RunProgress
+  Seed	588384
+  Type	Hammer
+C2
+  Enemies
+    1	HeavyRanged
+    2	HeavyMelee
+  Exits
+    1
+      ChaosGate	false
+      Reward	RoomRewardMetaPointDropRunProgress
+      RoomName	A_Combat09
+      WellShop	false
+  Seed	1123323008
+  UpgradeOptions
+    1
+      ItemName	PoseidonSecondaryTrait
+      Rarity	Common
+      Type	Trait
+    2
+      ItemName	PoseidonRangedTrait
+      Rarity	Epic
+      Type	Trait
+    3
+      ItemName	PoseidonRushTrait
+      Rarity	Common
+      Type	Trait
+  UpgradeOptionsReroll
+    1
+      ItemName	PoseidonSecondaryTrait
+      Rarity	Common
+      Type	Trait
+    2
+      ItemName	PoseidonRangedTrait
+      Rarity	Epic
+      Type	Trait
+    3
+      ItemName	PoseidonShoutTrait
+      Rarity	Epic
+      Type	Trait
+  Uses	16
+  Waves	1
+C3
+  Enemies
+  Exits
+    1
+      ChaosGate	false
+      Reward	LockKeyDropRunProgress
+      RoomName	A_Combat14
+      WellShop	false
+    2
+      ChaosGate	false
+      Reward	GemDropRunProgress
+      RoomName	A_Combat19
+      WellShop	false
+  Seed	-1312722704
+  UpgradeOptions
+    1
+      ItemName	ChaosBlessingMoneyTrait
+      Rarity	Epic
+      SecondaryItemName	ChaosCurseNoMoneyTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingAmmoTrait
+      Rarity	Epic
+      SecondaryItemName	ChaosCurseDamageTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingMaxHealthTrait
+      Rarity	Epic
+      SecondaryItemName	ChaosCurseTrapDamageTrait
+      Type	TransformingTrait
+  UpgradeOptionsReroll
+    1
+      ItemName	ChaosBlessingSecondaryTrait
+      Rarity	Epic
+      SecondaryItemName	ChaosCurseSpawnTrait
+      Type	TransformingTrait
+    2
+      ItemName	ChaosBlessingMeleeTrait
+      Rarity	Rare
+      SecondaryItemName	ChaosCurseDashRangeTrait
+      Type	TransformingTrait
+    3
+      ItemName	ChaosBlessingDashAttackTrait
+      Rarity	Common
+      SecondaryItemName	ChaosCurseSpawnTrait
+      Type	TransformingTrait
+  Uses	12
+  Waves	0
+C4
+  Enemies
+    1	PunchingBagUnit
+    2	LightSpawner
+  Exits
+    1
+      ChaosGate	false
+      Reward	StackUpgrade
+      RoomName	A_Combat05
+      WellShop	false
+    2
+      ChaosGate	false
+      Reward	ArtemisUpgrade
+      RoomName	A_Combat24
+      WellShop	true
+  Seed	444389298
+  Uses	11
+  Waves	1
+C5
+  Enemies
+    1	HeavyMelee
+  Exits
+    1
+      ChaosGate	false
+      Reward	RoomRewardMoneyDrop
+      RoomName	A_Combat13
+      WellShop	false
+    2
+      ChaosGate	false
+      Reward	StackUpgrade
+      RoomName	A_Reprieve01
+      WellShop	false
+  Seed	1501741483
+  StoreOptions
+    1
+      Args
+      Name	HealDropRange
+      Type	Consumable
+      Weight	1
+    2
+      Args
+      Name	RandomStoreItem
+      Type	Consumable
+    3
+      Args
+      Name	TemporaryForcedSecretDoorTrait
+      Type	Trait
+  UpgradeOptions
+    1
+      ItemName	ArtemisWeaponTrait
+      Rarity	Common
+      Type	Trait
+    2
+      ItemName	ArtemisRushTrait
+      Rarity	Common
+      Type	Trait
+    3
+      ItemName	CritBonusTrait
+      Rarity	Rare
+      Type	Trait
+  UpgradeOptionsReroll
+    1
+      ItemName	ArtemisSecondaryTrait
+      Rarity	Rare
+      Type	Trait
+    2
+      ItemName	ArtemisRushTrait
+      Rarity	Rare
+      Type	Trait
+    3
+      ItemName	ArtemisShoutTrait
+      Rarity	Epic
+      Type	Trait
+  Uses	10
+  Waves	1

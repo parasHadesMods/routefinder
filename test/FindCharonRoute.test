@@ -23,10 +23,12 @@ C2
       ChaosGate	true
       Reward	RoomRewardMoneyDrop
       RoomName	A_Combat10
+      WellShop	false
     2
       ChaosGate	false
       Reward	AphroditeUpgrade
       RoomName	A_Combat03
+      WellShop	false
   Seed	-1828358572
   Uses	24
   Waves	1
@@ -38,10 +40,12 @@ C3
       ChaosGate	false
       Reward	DemeterUpgrade
       RoomName	A_Combat15
+      WellShop	false
     2
       ChaosGate	false
       Reward	RoomRewardMaxHealthDrop
       RoomName	A_Combat24
+      WellShop	false
   Seed	-1881863344
   Uses	10
   Waves	1
@@ -52,14 +56,17 @@ C4
       ChaosGate	false
       Reward	AphroditeUpgrade
       RoomName	A_Reprieve01
+      WellShop	false
     2
       ChaosGate	false
       Reward	DemeterUpgrade
       RoomName	A_Combat12
+      WellShop	false
     3
       ChaosGate	false
       Reward	AresUpgrade
       RoomName	A_Combat07
+      WellShop	false
   Seed	14027283
   UpgradeOptions
     1
@@ -102,10 +109,12 @@ C5
       ChaosGate	false
       Reward	Shop
       RoomName	A_Shop01
+      WellShop	false
     2
       ChaosGate	false
-      Reward	LockKeyDropRunProgress
+      Reward	GemDropRunProgress
       RoomName	A_Combat08A
+      WellShop	true
   Seed	-1040382340
   UpgradeOptions
     1
@@ -142,6 +151,7 @@ C6
       ChaosGate	false
       Reward	DionysusUpgrade
       RoomName	A_MiniBoss03
+      WellShop	false
   HasCharonBag	true
   Seed	1298914499
   StoreOptions
@@ -215,10 +225,12 @@ C2
       ChaosGate	true
       Reward	RoomRewardMoneyDrop
       RoomName	A_Combat10
+      WellShop	false
     2
       ChaosGate	false
       Reward	AphroditeUpgrade
       RoomName	A_Combat03
+      WellShop	false
   Seed	-1828358572
   Uses	24
   Waves	1
@@ -230,10 +242,12 @@ C3
       ChaosGate	false
       Reward	DemeterUpgrade
       RoomName	A_Combat15
+      WellShop	false
     2
       ChaosGate	false
       Reward	RoomRewardMaxHealthDrop
       RoomName	A_Combat24
+      WellShop	false
   Seed	-1881863344
   Uses	10
   Waves	1
@@ -244,14 +258,17 @@ C4
       ChaosGate	false
       Reward	AphroditeUpgrade
       RoomName	A_Reprieve01
+      WellShop	false
     2
       ChaosGate	false
       Reward	DemeterUpgrade
       RoomName	A_Combat12
+      WellShop	false
     3
       ChaosGate	false
       Reward	AresUpgrade
       RoomName	A_Combat07
+      WellShop	false
   Seed	14027283
   UpgradeOptions
     1
@@ -294,10 +311,12 @@ C5
       ChaosGate	false
       Reward	Shop
       RoomName	A_Shop01
+      WellShop	false
     2
       ChaosGate	false
-      Reward	LockKeyDropRunProgress
+      Reward	GemDropRunProgress
       RoomName	A_Combat08A
+      WellShop	true
   Seed	-1040382340
   UpgradeOptions
     1
@@ -334,6 +353,7 @@ C6
       ChaosGate	false
       Reward	StackUpgrade
       RoomName	A_Combat07
+      WellShop	false
   HasCharonBag	true
   Seed	-320650907
   StoreOptions
