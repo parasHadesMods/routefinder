@@ -31,22 +31,33 @@ function CreateC2Door( run, reward )
 end
 
 function UpdateRewardStoresForC2(run, reward)
-  local rewardStores = run.RewardStores
+  local rewardStore = run.RewardStores[reward.SecondRoomRewardStore]
+  local firstRoomShrineReward = nil
+  if reward.FirstRoomShrine then
+    -- first remove the entry for the erebus gate
+    local eligibleRewards = {}
+    for key, candidate in pairs(rewardStore) do
+      if IsSecondRoomRewardEligible(candidate.GameStateRequirements, reward.Type) and
+         candidate.Name ~= "WeaponUpgrade" then -- Erebus gates can't have hammers
+        table.insert(eligibleRewards, key)
+      end
+    end
+    RandomSynchronize(4)
+    local selectedKey = GetRandomValue( eligibleRewards )
+    firstRoomShrineReward = rewardStore[selectedKey].Name
+    rewardStore[selectedKey] = nil
+  end
+  -- then handle the normal exit
   local eligibleRewards = {}
-  for key, candidate in pairs(RewardStoreData[reward.SecondRoomRewardStore]) do
-    if IsSecondRoomRewardEligible(candidate.GameStateRequirements, reward.Type) then
+  for key, candidate in pairs(rewardStore) do
+    if IsSecondRoomRewardEligible(candidate.GameStateRequirements, reward.Type) and
+       (reward.AllowDuplicates or candidate.Name ~= firstRoomShrineReward) then
       table.insert(eligibleRewards, key)
     end
   end
   RandomSynchronize(4)
   local selectedKey = GetRandomValue( eligibleRewards )
-  rewardStores[reward.SecondRoomRewardStore][selectedKey] = nil
-  RemoveValueAndCollapse( eligibleRewards, selectedKey )
-  if reward.FirstRoomShrine then
-    RandomSynchronize(4)
-    selectedKey = GetRandomValue( eligibleRewards )
-    rewardStores[reward.SecondRoomRewardStore][selectedKey] = nil
-  end
+  rewardStore[selectedKey] = nil
 end
 
 function CreateSecretDoor( currentRun )
