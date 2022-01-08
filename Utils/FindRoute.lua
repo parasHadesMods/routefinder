@@ -76,19 +76,26 @@ function CreateSecretDoor( currentRun )
   return secretDoor
 end
 
-function PickUpReward(run, requirements)
+function PickUpReward(run, requirements, reward)
   local lootName = run.CurrentRoom.ChosenRewardType
   if lootName == "LockKeyDropRunProgress" then
     run.NumRerolls = run.NumRerolls + 1
   end
   if lootName == "Boon" then
     lootName = run.CurrentRoom.ForceLootName
-    if requirements.ItemName ~= nil then
-      local rarity = requirements.Rarity or "Common"
-      local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = requirements.ItemName, Rarity = rarity })
-      local trait = DeepCopyTable( traitData )
-      table.insert(run.Hero.Traits, trait)
+    local itemName = nil
+    local rarity = nil
+    if requirements == nil then
+      -- no boon requirements, just pick the first option
+      itemName = reward.UpgradeOptions[1].ItemName
+      rarity = reward.UpgradeOptions[1].Rarity
+    else
+      itemName = requirements.ItemName
+      rarity = requirements.Rarity or "Common"
     end
+    local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = itemName, Rarity = rarity })
+    local trait = DeepCopyTable( traitData )
+    table.insert(run.Hero.Traits, trait)
   end
   run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
 end
@@ -215,7 +222,7 @@ function FindRemaining(run, doors, requirements, i, results)
         if requirements[nextCid] then
           -- go through that door, pick up the reward, and find out what new doors we're presented with.
           local run = MoveToNextRoom(run, reward, door)
-          PickUpReward(run, requirements[cid].Boon)
+          PickUpReward(run, requirements[cid].Boon, reward)
           local doors = ExitDoors(run, requirements[cid], reward)
           -- Now we're standing in front of another set of doors.
           FindRemaining(run, doors, requirements, i+1, results)
