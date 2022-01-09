@@ -78,7 +78,7 @@ local requirements = {
     Exit = { RoomName = "A_Shop01" }
   },
   C6 = {
-    Offset = { Min = 5, Max = 25 },
+    Offset = { Min = 10, Max = 35 },
     Room = {
       StoreOptions = function(store_options)
         return one_matches({
