@@ -91,7 +91,7 @@ local requirements = {
               UpgradeOptions = function(options)
                 return one_matches({
                     Rarity = "Legendary"
-                                   }, options)
+                }, options)
               end
             }
         }, store_items)

@@ -29,33 +29,35 @@ function debug_false(...)
   end
 end
 
-function matches(requirements, candidate)
-  for k,v in pairs(requirements) do
-    path_push(k)
-    if candidate[k] == nil then
-      debug_false("nil")
-      path_pop()
+function matches(requirement, candidate)
+  if type(requirement) == "function" then
+    if not requirement(candidate) then
+      -- debug should be printed by the requirement function
+        return false
+    end
+  elseif type(requirement) == "table" then
+    if type(candidate) ~= "table" then
+      debug_false("not table")
       return false
-    end 
-    if type(v) == "function" then
-      if not v(candidate[k]) then
-        -- debug should be printed by v
+    end
+    for k,v in pairs(requirement) do
+      path_push(k)
+      if candidate[k] == nil then
+        debug_false("nil")
         path_pop()
         return false
-      end 
-    elseif type(v) == "table" then
+      end
       if not matches(v, candidate[k]) then
-        -- debug will be printed by recursive call
+        -- debug was printed by recursive call
         path_pop()
         return false
-      end 
-    elseif candidate[k] ~= v then
-      debug_false(v, candidate[k])
+      end
       path_pop()
-      return false
-    end 
-    path_pop()
-  end 
+    end
+  elseif candidate ~= requirement then
+    debug_false(requirement, candidate)
+    return false
+  end
   return true
 end
 
@@ -63,7 +65,7 @@ function one_matches(requirements, candidates)
   if type(candidates) ~= "table" then
     debug_false("one_matches: not table")
     return false
-  end 
+  end
   for _,candidate in pairs(candidates) do
     if matches(requirements, candidate) then
       return true
@@ -97,7 +99,7 @@ end
 
 function matches_one(options, candidate)
   for k,v in pairs(options) do
-    if v == candidate then
+    if matches(v, candidate) then
       return true
     end
   end
