@@ -18,12 +18,12 @@ local c2_boon = {
 }
 
 local requirements = {
-  Seed = { Min = 0, Max = 50000000 },
+  Seed = { Min = 0, Max = 5000000 },
   C1 = {  -- different format since Ello's is used for C1 instead of Para's
     Type = "Hammer",
     SecondRoomReward= "Poseidon", -- not PoseidonUpgrade
     FirstRoomChaos = false,
-    SecondRoomChaos = true,
+    SecondRoomChaos = false, -- C3 chaos entrance / C4 chaos gives better combat
     HammerData = {
       Options = function(options)
         return one_matches({ Name = "ShieldRushProjectileTrait"}, options)
@@ -42,26 +42,26 @@ local requirements = {
       end
     },
     Boon = c2_boon,
-    Exit = "SecretDoor"
-  },
-  C3 = {
-    Offset = { Min = 5, Max = 25 },
-    Room = {
-      UpgradeOptions = function(options)
-        return one_matches({
-          ItemName = "ChaosBlessingAmmoTrait"
-        }, options)
-      end
-    },
     Exit = {}
   },
-  C4 = {
+  C3 = {
     Offset = { Min = 5, Max = 25 },
     Room = {
       Waves = 1,
       Enemies = function(enemies)
         return matches_table({"PunchingBagUnit"}, enemies)
       end,
+    },
+    Exit = "SecretDoor"
+  },
+  C4 = {
+    Offset = { Min = 5, Max = 25 },
+    Room = {
+      UpgradeOptions = function(options)
+        return one_matches({
+            ItemName = "ChaosBlessingAmmoTrait"
+        }, options)
+      end
     },
     Exit = {
       WellShop = true

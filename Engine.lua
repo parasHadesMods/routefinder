@@ -49,7 +49,13 @@ local nop_functions = {
   "DebugPrint",
   "DebugAssert",
   "SetProjectileProperty",
-  "PreLoadBinks"
+  "PreLoadBinks",
+  "EquipWeapon",
+  "SetWeaponProperty",
+  "RunWeaponMethod",
+  "SetEffectProperty",
+  "Destroy",
+  "SwapWeapon"
 }
 
 for _, name in pairs(nop_functions) do

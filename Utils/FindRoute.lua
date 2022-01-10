@@ -9,7 +9,7 @@ Import "Utils/Matching.lua"
 
 function CreateRun()
   local oldCurrentRun = CurrentRun
-  local run = StartNewRun()
+  local run = StartNewRun(oldCurrentRun)
   run.CurrentRoom.RewardStoreName = "RunProgress"
   CurrentRun = oldCurrentRun
   return run
