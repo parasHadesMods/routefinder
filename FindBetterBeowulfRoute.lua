@@ -18,7 +18,7 @@ local c2_boon = {
 }
 
 local requirements = {
-  Seed = { Min = 0, Max = 5000000 },
+  Seed = { Min = 5000000, Max = 50000000 },
   C1 = {  -- different format since Ello's is used for C1 instead of Para's
     Type = "Hammer",
     SecondRoomReward= "Poseidon", -- not PoseidonUpgrade
