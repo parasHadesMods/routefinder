@@ -42,7 +42,9 @@ local requirements = {
       end
     },
     Boon = c2_boon,
-    Exit = {}
+    Exit = {
+      ChaosGate = true
+    }
   },
   C3 = {
     Offset = { Min = 5, Max = 25 },

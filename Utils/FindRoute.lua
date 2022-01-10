@@ -7,11 +7,9 @@ end
 Import "Utils/DeepPrint.lua"
 Import "Utils/Matching.lua"
 
-function CreateRun()
-  local oldCurrentRun = CurrentRun
-  local run = StartNewRun(oldCurrentRun)
+function CreateRun(initialRun)
+  local run = StartNewRun(initialRun)
   run.CurrentRoom.RewardStoreName = "RunProgress"
-  CurrentRun = oldCurrentRun
   return run
 end
 
@@ -241,6 +239,7 @@ function FindRemaining(run, doors, requirements, i, results)
 end
 
 function FindRoute(requirements)
+  local initialRun = DeepCopyTable(CurrentRun)
   for seed=requirements.Seed.Min,requirements.Seed.Max do
     if seed % 10000 == 0 then
       io.stderr:write(seed, "\n")
@@ -249,7 +248,7 @@ function FindRoute(requirements)
     c1_reward.Seed = seed
 
     if matches(requirements.C1, c1_reward) then
-      local run = CreateRun()
+      local run = CreateRun(initialRun)
       PickUpReward(run) -- in C1
       UpdateRewardStoresForC2(run, c1_reward)
       RandomSynchronize(2) -- ChooseNextRoomData
