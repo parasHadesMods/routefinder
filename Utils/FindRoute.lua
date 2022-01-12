@@ -28,10 +28,11 @@ function CreateC2Door( run, reward )
   return door
 end
 
-function UpdateRewardStoresForC2(run, reward)
+function UpdateRunForElloReward(run, reward)
   local rewardStore = run.RewardStores[reward.SecondRoomRewardStore]
   local firstRoomShrineReward = nil
   if reward.FirstRoomShrine then
+    run.LastShrinePointDoorDepth = GetRunDepth( run )
     -- first remove the entry for the erebus gate
     local eligibleRewards = {}
     for key, candidate in pairs(rewardStore) do
@@ -250,7 +251,7 @@ function FindRoute(requirements)
     if matches(requirements.C1, c1_reward) then
       local run = CreateRun(initialRun)
       PickUpReward(run) -- in C1
-      UpdateRewardStoresForC2(run, c1_reward)
+      UpdateRunForElloReward(run, c1_reward)
       RandomSynchronize(2) -- ChooseNextRoomData
       local doors = { CreateC2Door(run, c1_reward) }
       local result = { C1 = c1_reward }
