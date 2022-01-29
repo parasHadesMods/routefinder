@@ -13,7 +13,7 @@ function CreateRun(initialRun)
   return run
 end
 
-function CreateC2Door( run, reward )
+function CreateC2Door( reward )
   local roomData = RoomData[reward.SecondRoomName]
   local door = {
     Room = CreateRoom( roomData, { SkipChooseReward = true, SkipChooseEncounter = true } )
@@ -250,10 +250,10 @@ function FindRoute(requirements)
 
     if matches(requirements.C1, c1_reward) then
       local run = CreateRun(initialRun)
-      PickUpReward(run) -- in C1
+      PickUpReward(run, requirements.C1.Boon, c1_reward) -- in C1
       UpdateRunForElloReward(run, c1_reward)
       RandomSynchronize(2) -- ChooseNextRoomData
-      local doors = { CreateC2Door(run, c1_reward) }
+      local doors = { CreateC2Door(c1_reward) }
       local result = { C1 = c1_reward }
       FindRemaining(run, doors, requirements, 2, result)
     end
