@@ -52,6 +52,7 @@ for uses=UseRange.Min,UseRange.Max do
             RandomSynchronize(uses)
             local prediction = PredictLoot(c3_exit_door) -- standing in front of c4 doors, in c3
             if prediction.Seed == RunToMatch.C4_Seed then
+              EstimatedOffset = prediction.EstimatedEndOfRoomOffset
               CurrentRun = MoveToNextRoom(CurrentRun, { Prediction = prediction }, c3_exit_door) -- c3 -> c4
               PickUpReward(CurrentRun, nil, prediction)
               local summary = {}
@@ -61,7 +62,7 @@ for uses=UseRange.Min,UseRange.Max do
                 local door = {
                   Room = DeepCopyTable(exit.Room)
                 }
-                local options = PredictRoomOptions(CurrentRun, door, { Min = 5, Max = 15 })
+                local options = PredictRoomOptions(CurrentRun, door, { Min = EstimatedOffset, Max = EstimatedOffset + 7 })
                 for _, option in pairs(options) do
                   clean_reward(option)
                   local summary_option = ""
