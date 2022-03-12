@@ -61,7 +61,7 @@ for uses=UseRange.Min,UseRange.Max do
                 local door = {
                   Room = DeepCopyTable(exit.Room)
                 }
-                local options = PredictRoomOptions(CurrentRun, door, { Min = 5, Max = 20 })
+                local options = PredictRoomOptions(CurrentRun, door, { Min = 5, Max = 15 })
                 for _, option in pairs(options) do
                   clean_reward(option)
                   local summary_option = ""
