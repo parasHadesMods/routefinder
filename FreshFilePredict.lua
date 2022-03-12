@@ -1,4 +1,6 @@
 Import "Utils/FindRoute.lua"
+Import "Utils/JsonRead.lua"
+Import "Utils/DeepPrint.lua"
 
 local C2Door = CreateC2Door({
     SecondRoomName = "RoomSimple01", -- Athena Room
@@ -10,36 +12,73 @@ local AthenaDashTrait = GetProcessedTraitData({ Unit = CurrentRun.Hero, TraitNam
 table.insert(CurrentRun.Hero.Traits, AthenaDashTrait)
 CurrentRun.LootTypeHistory["AthenaUpgrade"] = 1
 
-C3RoomName = A_Combat16
-C4RoomName = A_Combat12
-C3Reward   = RoomRewardMetaPointDrop
-C4Reward   = StackUpgrade
+local function read_file(path)
+  local file = io.open(path, "rb") -- r read mode and b binary mode
+  if not file then return nil end
+  local content = file:read "*a" -- *a or *all reads the whole file
+  file:close()
+  return content
+end
 
-RandomSynchronize(uses)
-local c2_prediction = PredictLoot(C2Door)
-local c3door = {
-  Room = DeepCopyTable(c2_prediction.NextExitRewards[1].Room)
+UseRange = {
+  Min = 0,
+  Max = 100
 }
-NextSeeds[1] = c2_prediction.Seed
-RandomSynchronize(6) -- uses at end of athena room
-local c3_prediction = PredictLoot(c3door)
-result.C3_Seed = c3_prediction.Seed
-result.C3_DoorRewards = ExitRewards(c3_prediction.NextExitRewards)
-result.C3_Waves = EncounterWaves(c3_prediction.Encounter)
-for _, exit in pairs(c3_prediction.NextExitRewards) do
-  result.C4_RoomName = exit.RoomName
-  result.C4_RewardChosen = exit.ForceLootName or exit.RewardType
-  local c4door = {
-    Room = DeepCopyTable(exit.Room)
-  }
-  CurrentRun = MoveToNextRoom(CurrentRun, reward, c3door)
-  PickUpReward(CurrentRun) -- c3 is always MetaProgress
-  for uses=MinC3Uses,MaxC3Uses do
-    NextSeeds[1] = c3_prediction.Seed
-    RandomSynchronize(uses)
-    local c4_prediction = PredictLoot(c4door)
-    result.C4_Seed = c4_prediction.Seed
-    result.C4_DoorRewards = ExitRewards(c4_prediction.NextExitRewards)
-    result.C4_Waves = EncounterWaves(c4_prediction.Encounter)
+
+RunToMatch = JsonDecoder(read_file("../seedfinder/run_for_prediction.json"))
+
+for uses=UseRange.Min,UseRange.Max do
+  NextSeeds[1] = RunToMatch.C1_Seed
+  RandomSynchronize(uses)
+  local prediction = PredictLoot(C2Door)
+  if prediction.Seed == RunToMatch.C2_Seed then
+    local c2_exit_door = {
+      Room = DeepCopyTable(prediction.NextExitRewards[1].Room) -- one exit
+    }
+    NextSeeds[1] = prediction.Seed
+    RandomSynchronize(6) -- offset at end of athena room
+    local prediction = PredictLoot(c2_exit_door) -- standing in front of c3 door, in c2
+    if prediction.Seed == RunToMatch.C3_Seed then
+      for _, exit in pairs(prediction.NextExitRewards) do
+        local c3_exit_reward = exit.ForceLootName or exit.RewardType
+        if c3_exit_reward == RunToMatch.C3_Exit_Chosen then
+          local c3_exit_door = { -- we already know where we're going to go before we enter c3
+            Room = DeepCopyTable(exit.Room)
+          }
+          CurrentRun = MoveToNextRoom(CurrentRun, { Prediction = prediction }, c2_exit_door) -- c2 -> c3
+          PickUpReward(CurrentRun) -- always metaprogress
+          for uses = UseRange.Min,UseRange.Max do -- now ready to predict c4 since we have picked up c3 reward
+            NextSeeds[1] = prediction.Seed
+            RandomSynchronize(uses)
+            local prediction = PredictLoot(c3_exit_door) -- standing in front of c4 doors, in c3
+            if prediction.Seed == RunToMatch.C4_Seed then
+              CurrentRun = MoveToNextRoom(CurrentRun, { Prediction = prediction }, c3_exit_door) -- c3 -> c4
+              PickUpReward(CurrentRun, nil, prediction)
+              local summary = {}
+              for _, exit in pairs(prediction.NextExitRewards) do
+                local c4_exit_reward = exit.ForceLootName or exit.RewardType
+                summary[c4_exit_reward] = {}
+                local door = {
+                  Room = DeepCopyTable(exit.Room)
+                }
+                local options = PredictRoomOptions(CurrentRun, door, { Min = 5, Max = 20 })
+                for _, option in pairs(options) do
+                  clean_reward(option)
+                  local summary_option = ""
+                  for k,exit in pairs(option.Exits) do
+                    if summary_option ~= "" then
+                      summary_option = summary_option .. "+"
+                    end
+                    summary_option = summary_option .. exit.Reward
+                  end
+                  summary[c4_exit_reward][option.Uses] = summary_option
+                end
+              end
+              deep_print(summary)
+            end
+          end
+        end
+      end
+    end
   end
 end
