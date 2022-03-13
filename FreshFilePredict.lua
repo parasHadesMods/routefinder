@@ -62,6 +62,7 @@ for uses=UseRange.Min,UseRange.Max do
                 local door = {
                   Room = DeepCopyTable(exit.Room)
                 }
+                NextSeeds[1] = prediction.Seed
                 local options = PredictRoomOptions(CurrentRun, door, { Min = EstimatedOffset, Max = EstimatedOffset + 7 })
                 for _, option in pairs(options) do
                   clean_reward(option)
@@ -76,6 +77,7 @@ for uses=UseRange.Min,UseRange.Max do
                 end
               end
               deep_print(summary)
+              return -- once we've found and printed the options, we're done
             end
           end
         end
