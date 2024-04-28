@@ -10,11 +10,82 @@ local heroesExitDoor = {
   )
 }
 
-local offsets = PredictRoomOptions(
-  CurrentRun,
-  heroesExitDoor,
-  { Min = 8000, Max = 12000 }
-)
+--[[
+  Normally, one of the items that you decline from the well
+  (ie. do not buy) will be removed from the eligible pool,
+  to ensure that you can't get exactly the same results the
+  second time. However, for the purpose of trying to find
+  a 4-ichor well with a single reroll, we need to buy both
+  non-healing items before rerolling, so we're guaranteed
+  to always have the same eligible list.
+]]--
+local EligibleStoreOptions = {
+  {
+    Name = "TemporaryImprovedWeaponTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryMoreAmmoTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedRangedTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryMoveSpeedTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryBoonRarityTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryArmorDamageTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryAlphaStrikeTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryBackstabTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedSecondaryTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedTrapDamageTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "MetaDropRange",
+    Type = "Trait"
+  },
+  {
+    Name = "GemDropRange",
+    Type = "Trait"
+  },
+  {
+    Name = "KeepsakeChargeDrop",
+    Type = "Trait"
+  },
+  {
+    Name = "RandomStoreItem",
+    Type = "Trait"
+  }
+}
+
+function SimulateWellReroll(uses)
+  RandomSynchronize(uses)
+  local options = DeepCopyTable(EligibleStoreOptions)
+  while TableLength( options ) > 2 do
+    RemoveRandomValue( options )
+  end
+  return options
+end
 
 function hasTwistAndIchor(items)
   local has_ichor = one_matches({
@@ -26,18 +97,102 @@ function hasTwistAndIchor(items)
   return has_ichor and has_twist
 end
 
-for i, result in pairs(offsets) do
+local EligibleTwistOptions = {
+  {
+    Name = "TemporaryWeaponLifeOnKillTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryDoorHealTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedWeaponTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryMoreAmmoTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedRangedTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryMoveSpeedTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryBoonRarityTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryArmorDamageTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryAlphaStrikeTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryBackstabTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedSecondaryTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "TemporaryImprovedTrapDamageTrait",
+    Type = "Trait"
+  },
+  {
+    Name = "EmptyMaxHealthDrop",
+    Type = "Trait"
+  }
+}
+
+function SimulateFatefulTwist(uses)
+  RandomSynchronize(uses)
+  local run = DeepCopyTable(CurrentRun)
+  TmpPlayedRandomLines = DeepCopyTable(PlayedRandomLines)
+  TmpPlayingVoiceLines = {}
+  TmpGlobalCooldowns = {}
+  SimulateVoiceLines(run, GlobalVoiceLines.PurchasedWellShopItemVoiceLines)
+  local randomItem = GetRandomValue( EligibleTwistOptions )
+  return randomItem.Name
+end
+
+for i=10229,10229 do
+  if i % 100 == 0 then
+    print(i)
+  end
+  local result = PredictRoomOptions(
+    CurrentRun,
+    heroesExitDoor,
+    { Min = i, Max = i})[1]
   if hasTwistAndIchor(result.StoreOptions) then
-    if hasTwistAndIchor(result.StoreOptionsReroll) then
-      print(result.Uses)
-      deep_print(result.StoreOptions)
-      print("SlowReroll")
-      deep_print(result.StoreOptionsReroll)
-    elseif hasTwistAndIchor(result.StoreOptionsRerollFast) then
-      print(result.Uses)
-      deep_print(result.StoreOptions)
-      print("FastReroll")
-      deep_print(result.StoreOptionsRerollFast)
+    local oldSeed = NextSeeds[1]
+    NextSeeds[1] = result.Seed
+    for i=2,4 do
+      local rerollResult = SimulateWellReroll(i)
+      if hasTwistAndIchor(rerollResult) then
+        deep_print({
+          Seed = result.Seed,
+          Uses = result.Uses,
+          Well = result.StoreOptions
+        })
+        print("Reroll @ " .. i)
+        deep_print(rerollResult)
+        local twistOffset = 11
+        repeat
+          twistOffset = twistOffset + 1
+        until SimulateFatefulTwist(twistOffset) == "TemporaryMoveSpeedTrait"
+
+        print("Twist Offset " .. twistOffset)
+      end
     end
+    NextSeeds[1] = oldSeed
+    RandomSynchronize()
   end
 end
