@@ -163,36 +163,50 @@ function SimulateFatefulTwist(uses)
   return randomItem.Name
 end
 
-for i=10229,10229 do
-  if i % 100 == 0 then
-    print(i)
-  end
-  local result = PredictRoomOptions(
-    CurrentRun,
-    heroesExitDoor,
-    { Min = i, Max = i})[1]
-  if hasTwistAndIchor(result.StoreOptions) then
-    local oldSeed = NextSeeds[1]
-    NextSeeds[1] = result.Seed
-    for i=2,4 do
-      local rerollResult = SimulateWellReroll(i)
-      if hasTwistAndIchor(rerollResult) then
-        deep_print({
-          Seed = result.Seed,
-          Uses = result.Uses,
-          Well = result.StoreOptions
-        })
-        print("Reroll @ " .. i)
-        deep_print(rerollResult)
-        local twistOffset = 11
-        repeat
-          twistOffset = twistOffset + 1
-        until SimulateFatefulTwist(twistOffset) == "TemporaryMoveSpeedTrait"
+local PreHeroesSeed = 837602280
 
-        print("Twist Offset " .. twistOffset)
-      end
+local alternativeSeeds = {}
+NextSeeds[1] = PreHeroesSeed
+for i=6,20 do
+  RandomSynchronize(i)
+  local seed = RandomInt(-2147483647, 2147483646)
+  table.insert(alternativeSeeds, seed)
+end
+
+for i, seed in pairs(alternativeSeeds) do
+  NextSeeds[1] = seed
+  print("Heroes " .. seed)
+  for i=500,1000 do
+    if i % 100 == 0 then
+      print(i)
     end
-    NextSeeds[1] = oldSeed
-    RandomSynchronize()
+    local result = PredictRoomOptions(
+      CurrentRun,
+      heroesExitDoor,
+      { Min = i, Max = i})[1]
+    if hasTwistAndIchor(result.StoreOptions) then
+      local oldSeed = NextSeeds[1]
+      NextSeeds[1] = result.Seed
+      for i=2,4 do
+        local rerollResult = SimulateWellReroll(i)
+        if hasTwistAndIchor(rerollResult) then
+          deep_print({
+            Seed = result.Seed,
+            Uses = result.Uses,
+            Well = result.StoreOptions
+          })
+          print("Reroll @ " .. i)
+          deep_print(rerollResult)
+          local twistOffset = 11
+          repeat
+            twistOffset = twistOffset + 1
+          until SimulateFatefulTwist(twistOffset) == "TemporaryMoveSpeedTrait"
+
+          print("Twist Offset " .. twistOffset)
+        end
+      end
+      NextSeeds[1] = oldSeed
+      RandomSynchronize()
+    end
   end
 end
