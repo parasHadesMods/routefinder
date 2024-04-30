@@ -180,6 +180,9 @@ function MoveToNextRoom(previousRun, reward, door)
   run.LastWellShopDepth = reward.Prediction.CurrentRun.LastWellShopDepth
   -- Enter next room and pick up reward
   local room = DeepCopyTable(door.Room)
+  if room.WingRoom then
+    run.WingDepth = (run.WingDepth or 0) + 1
+  end
   room.Encounter = reward.Prediction.Encounter
   run.CurrentRoom = room
   NextSeeds[1] = reward.Seed

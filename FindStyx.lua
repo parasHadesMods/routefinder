@@ -20,11 +20,12 @@ local styxDoor = {
 --   table.insert(alternativeSeeds, seed)
 -- end
 
+print(NextSeeds[1])
 local requirements = {
   C39 = { -- Styx Hub
-    Offset = { Min = 600, Max = 6000},
+    Offset = { Min = 41, Max = 41},
     Room = {
-      --Seed = 1310035843
+      Seed = 1300018164
     },
     Exit = {
       StyxMiniBoss = true
@@ -32,28 +33,28 @@ local requirements = {
     SkipReward = true
   },
   C40 = { -- Tunnel 1
-    -- Which Path adds extra increment, as does ... ???
-    Offset = { Min = 2, Max = 2, AddEstimatedOffset = true },
+    -- Which Path adds extra increment (skippable), as does ... something else
+    Offset = { Min = 16, Max = 16, AddEstimatedOffset = false },
     Room = {
-      --Seed = 277685556
+      Seed = 26912063
     },
     Exit = {},
     SkipReward = true
   },
   C41 = { -- Tunnel 2
     -- Extra offset from chaos curse expiring
-    Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
+    Offset = { Min = 13, Max = 13, AddEstimatedOffset = false },
     Room = {
-      --Seed = 1833339984
+      Seed = 736107039
     },
     Exit = {},
     SkipReward = true
   },
   C42 = { -- Tunnel 3
     -- Extra offset from another chaos curse expiring!
-    Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
+    Offset = { Min = 18, Max = 18, AddEstimatedOffset = false },
     Room = {
-      --Seed = 1861540651,
+      Seed = 1216909903,
       Exits = {
         {
           RoomName = "D_MiniBoss04" -- Bother
