@@ -117,7 +117,8 @@ function PredictRoomOptions( run, door, range )
       Waves = 0,
       Enemies = {},
       Exits = {},
-      Prediction = prediction
+      Prediction = prediction,
+      EstimatedEndOfRoomOffset = prediction.EstimatedEndOfRoomOffset
     }
     local addedEnemy = {}
     if prediction.Encounter.SpawnWaves then
@@ -138,6 +139,7 @@ function PredictRoomOptions( run, door, range )
           Room = reward.Room,
           ChaosGate = reward.ChaosGate,
           WellShop = reward.WellShop,
+          StyxMiniBoss = reward.StyxMiniBoss,
           Reward = reward.ForceLootName or reward.RewardType
         }
         table.insert(summary.Exits, exit)
@@ -214,14 +216,22 @@ function FindRemaining(run, doors, requirements, i, results)
   local seed = NextSeeds[1]
   for _, door in pairs(doors) do
     -- Predict what is behind each door; this depends on the rng offset.
-    for _, reward in pairs(PredictRoomOptions(run, door, requirements[cid].Offset)) do
+    local range = DeepCopyTable(requirements[cid].Offset)
+    if range.AddEstimatedOffset then
+      local previousCid = "C" .. (i-1)
+      range.Min = range.Min + results[previousCid].EstimatedEndOfRoomOffset
+      range.Max = range.Max + results[previousCid].EstimatedEndOfRoomOffset
+    end
+    for _, reward in pairs(PredictRoomOptions(run, door, range)) do
       if CheckForced(requirements[cid].ForcedSeed, reward.Seed) and matches(requirements[cid].Room, reward) then
         -- If we found a door that we like,
         results[cid] = reward
         if requirements[nextCid] then
           -- go through that door, pick up the reward, and find out what new doors we're presented with.
           local run = MoveToNextRoom(run, reward, door)
-          PickUpReward(run, requirements[cid].Boon, reward)
+          if not requirements[cid].SkipReward then
+            PickUpReward(run, requirements[cid].Boon, reward)
+          end
           local doors = ExitDoors(run, requirements[cid], reward)
           -- Now we're standing in front of another set of doors.
           FindRemaining(run, doors, requirements, i+1, results)
