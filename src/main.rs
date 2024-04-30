@@ -5,25 +5,32 @@ mod save;
 use save::UncompressedSize;
 use rng::SggPcg;
 use rand::RngCore;
-use structopt::StructOpt;
+use clap::Parser;
 use rlua::{Lua, Variadic, Value, Context};
 use std::fs;
 use std::rc::Rc;
 use std::cell::RefCell;
 use libm::ldexp;
 use lz4;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-#[derive(StructOpt)]
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
 struct Cli {
-  #[structopt(short = "s", long, env)]
-  hades_scripts_dir: std::path::PathBuf,
-  #[structopt(short = "f", long)]
-  hades_save_file: std::path::PathBuf,
-  #[structopt(parse(from_os_str))]
-  script: std::path::PathBuf
+    script: std::path::PathBuf,
+
+    /// Save file to use as starting point
+    #[arg(short = 'f', long, value_name = "FILE")]
+    save_file: PathBuf,
+
+    /// Hades Scripts directory
+    #[arg(short = 's', long, value_name = "FILE")]
+    scripts_dir: PathBuf,
+
 }
+
 
 #[derive(Debug)]
 struct SimpleStringError {
@@ -77,20 +84,23 @@ impl From<String> for Error {
 }
 
 impl From<Error> for rlua::Error {
-  fn from(error: Error) -> Self {
-     match error {
-       Error::Lua { error } => error,
-       Error::IO { error } => rlua::Error::ExternalError(Arc::new(error)),
-       Error::SimpleString { error } => rlua::Error::ExternalError(Arc::new(error))
-     }
-  }
+    fn from(error: Error) -> Self {
+        match error {
+            Error::Lua { error } => error,
+            Error::IO { error } => rlua::Error::ExternalError(Arc::new(error)),
+            Error::SimpleString { error } => rlua::Error::ExternalError(Arc::new(error))
+        }
+    }
 }
 
 fn main() -> Result<()> {
-    let args = Cli::from_args();
+
+    let cli = Cli::parse();
+
     let lua = unsafe {
       Lua::new_with_debug()
     };
+
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
     lua.context(|lua_ctx| {
         lua_ctx.scope(|scope| -> Result<()> {
@@ -122,10 +132,10 @@ fn main() -> Result<()> {
             })?;
             lua_ctx.globals().set("randomgaussian", randomgaussian)?;
             // Load lua files
-            load_lua_file(lua_ctx, &args.hades_scripts_dir.join("Main.lua"))?;
-            load_lua_file(lua_ctx, &args.hades_scripts_dir.join("RoomManager.lua"))?;
+            load_lua_file(lua_ctx, &cli.scripts_dir.join("Main.lua"))?;
+            load_lua_file(lua_ctx, &cli.scripts_dir.join("RoomManager.lua"))?;
             // Load save file
-            let save_file = read_file(args.hades_save_file)?;
+            let save_file = read_file(cli.save_file)?;
             let lua_state_lz4 = save::read(&mut save_file.as_slice(), "save".to_string())?.lua_state_lz4;
             let lua_state = lz4::block::decompress(&lua_state_lz4.as_slice(), Some(save::HadesSaveV16::UNCOMPRESSED_SIZE))?;
             let save_data = luabins::load(&mut lua_state.as_slice(), lua_ctx, "luabins".to_string())?;
@@ -141,7 +151,7 @@ fn main() -> Result<()> {
                 end
                 "#).exec()?;
             // load and run script
-            load_lua_file(lua_ctx, &args.script)
+            load_lua_file(lua_ctx, &cli.script)
         })
     })
 }
@@ -186,13 +196,10 @@ fn rand_int(rng: &mut SggPcg, min: i32, max: i32) -> i32 {
 
 fn bounded(rng: &mut SggPcg, bound: u32) -> u32 {
   let threshold = (u32::MAX - bound + 1) % bound;
-  // println!("bounded: bound {}, threshold {}", bound, threshold);
 
   loop {
     let r = rng.next_u32();
-    // println!("r {}", r);
     if r >= threshold {
-      // println!("ret {}", r % bound);
       return r % bound;
     }
   }
@@ -201,37 +208,3 @@ fn bounded(rng: &mut SggPcg, bound: u32) -> u32 {
 fn rand_double(rng: &mut SggPcg) -> f64 {
   ldexp(rng.next_u32() as f64, -32)
 }
-
-/* Rough stab at how random gaussian generate works in the Hades code.
-   - seems to be an independant SggPcg used only for gaussians
-   - the gaussian pcg isn't reseeded on RandomSeed or reset on RandomSynchronize
-   - it does seem to be reset to the same value every time when starting the game
-
-struct GaussState {
-  has_value: bool,
-  value: f64
-}
-
-fn rand_gauss(rng: &mut SggPcg, state: &mut GaussState) -> f64 {
-  if state.has_value {
-      state.has_value = false;
-      state.value
-   } else {
-      let mut u: f64 = 0.0;
-      let mut v: f64 = 0.0;
-      let mut s: f64 = 0.0;
-
-      // Box-Muller, polar form
-      while s >= 1.0 || s == 0.0 {
-        u = 2.0 * rand_double(rng) - 1.0;
-        v = 2.0 * rand_double(rng) - 1.0;
-        s = u * u + v * v;
-      }
-
-      let f = libm::sqrt(-2.0 * libm::log(s) / s);
-      state.has_value = true; // keep for next call
-      state.value = f * u;
-      f * v
-  }
-}
-*/
