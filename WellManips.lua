@@ -163,11 +163,11 @@ function SimulateFatefulTwist(uses)
   return randomItem.Name
 end
 
-local PreHeroesSeed = 837602280
+local PreHeroesSeed = -1636193844
 
 local alternativeSeeds = {}
 NextSeeds[1] = PreHeroesSeed
-for i=6,20 do
+for i=22,30 do
   RandomSynchronize(i)
   local seed = RandomInt(-2147483647, 2147483646)
   table.insert(alternativeSeeds, seed)
