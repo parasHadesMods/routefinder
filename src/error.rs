@@ -1,4 +1,4 @@
-use rlua;
+use mlua;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -16,13 +16,13 @@ impl std::error::Error for SimpleStringError {}
 
 #[derive(Debug)]
 pub enum Error {
-    Lua { error: rlua::Error },
+    Lua { error: mlua::Error },
     IO { error: std::io::Error },
     SimpleString { error: SimpleStringError },
 }
 
-impl From<rlua::Error> for Error {
-    fn from(error: rlua::Error) -> Self {
+impl From<mlua::Error> for Error {
+    fn from(error: mlua::Error) -> Self {
         Error::Lua { error: error }
     }
 }
@@ -43,12 +43,12 @@ impl From<String> for Error {
     }
 }
 
-impl From<Error> for rlua::Error {
+impl From<Error> for mlua::Error {
     fn from(error: Error) -> Self {
         match error {
             Error::Lua { error } => error,
-            Error::IO { error } => rlua::Error::ExternalError(Arc::new(error)),
-            Error::SimpleString { error } => rlua::Error::ExternalError(Arc::new(error)),
+            Error::IO { error } => mlua::Error::ExternalError(Arc::new(error)),
+            Error::SimpleString { error } => mlua::Error::ExternalError(Arc::new(error)),
         }
     }
 }
