@@ -75,6 +75,18 @@ function CreateSecretDoor( currentRun )
   return secretDoor
 end
 
+ModUtil.WrapBaseFunction("GetPreviousStore", function( baseFunc, args )
+  return {}
+end)
+
+ModUtil.WrapBaseFunction("CheckPreviousReward", function( baseFunc, currentRun, room, pcr, args)
+  local oldCurrentRun = CurrentRun
+  CurrentRun = currentRun
+  local r = baseFunc(currentRun, room, pcr, args)
+  CurrentRun = oldCurrentRun
+  return r
+end)
+
 function PickUpReward(run, requirements, reward)
   local lootName = run.CurrentRoom.ChosenRewardType
   if lootName == "LockKeyDropRunProgress" then
@@ -184,7 +196,11 @@ function MoveToNextRoom(previousRun, reward, door)
     run.WingDepth = (run.WingDepth or 0) + 1
   end
   room.Encounter = reward.Prediction.Encounter
+  if run.CurrentRoom.CloseDoorsOnUse then
+    CloseDoorForRun(run, door)
+  end
   run.CurrentRoom = room
+  run.RoomCreations[room.Name] = (run.RoomCreations[room.Name] or 0) + 1
   NextSeeds[1] = reward.Seed
   return run
 end
@@ -194,11 +210,29 @@ function ExitDoors(run, room_requirements, reward)
   if room_requirements.Exit == "SecretDoor" then
     table.insert(doors, CreateSecretDoor(run))
   else
-    for k, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
+    local allDoors = {}
+    for k, exit in pairs(reward.Exits) do
       local door = {
-        Room = DeepCopyTable(exit.Room)
+        Room = DeepCopyTable(exit.Room),
+        ObjectId = k
       }
-      table.insert(doors, door)
+      exit.DoorObjectId = k
+      table.insert(allDoors, door)
+    end
+    if run.CurrentRoom.PersistentExitDoorRewards then
+      if run.CurrentRoom.OfferedRewards == nil then
+        run.CurrentRoom.OfferedRewards = {}
+        for k, exit in pairs(reward.Exits) do
+          run.CurrentRoom.OfferedRewards[exit.DoorObjectId] = {
+            Type = exit.Room.ChosenRewardType,
+            ForceLootName = exit.Room.ForceLootName,
+            UseOptionalOverrides = exit.Room.UseOptionalOverrides
+          }
+        end
+      end
+    end
+    for k, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
+      table.insert(doors, allDoors[exit.DoorObjectId])
     end
   end
   return doors

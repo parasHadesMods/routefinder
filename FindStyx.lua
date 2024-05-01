@@ -23,9 +23,8 @@ local styxDoor = {
 print(NextSeeds[1])
 local requirements = {
   C39 = { -- Styx Hub
-    Offset = { Min = 41, Max = 41},
+    Offset = { Min = 231, Max = 231 },
     Room = {
-      Seed = 1300018164
     },
     Exit = {
       StyxMiniBoss = true
@@ -34,27 +33,33 @@ local requirements = {
   },
   C40 = { -- Tunnel 1
     -- Which Path adds extra increment (skippable), as does ... something else
-    Offset = { Min = 16, Max = 16, AddEstimatedOffset = false },
+    Offset = { Min = 12, Max = 12, AddEstimatedOffset = false },
     Room = {
-      Seed = 26912063
+      Enemies = function(enemies)
+        return not one_matches("Crawler" , enemies)
+      end
     },
     Exit = {},
     SkipReward = true
   },
   C41 = { -- Tunnel 2
     -- Extra offset from chaos curse expiring
-    Offset = { Min = 13, Max = 13, AddEstimatedOffset = false },
+    Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
     Room = {
-      Seed = 736107039
+      Enemies = function(enemies)
+        return not one_matches("Crawler" , enemies)
+      end
     },
     Exit = {},
     SkipReward = true
   },
   C42 = { -- Tunnel 3
     -- Extra offset from another chaos curse expiring!
-    Offset = { Min = 18, Max = 18, AddEstimatedOffset = false },
+    Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
     Room = {
-      Seed = 1216909903,
+      Enemies = function(enemies)
+        return not one_matches("Crawler" , enemies)
+      end,
       Exits = {
         {
           RoomName = "D_MiniBoss04" -- Bother
@@ -62,6 +67,36 @@ local requirements = {
       }
     },
     Exit = {},
+    SkipReward = true
+  },
+  C43 = { -- Miniboss
+    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Room = {},
+    Exit = {},
+  },
+  C44 = { -- D_Hub
+    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Room = {},
+    Exit = {},
+    SkipReward = true
+  },
+  C45 = { -- Tunnel 2 # 1
+    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Room = {},
+    Exit = {},
+    SkipReward = true
+  },
+  C45 = { -- Tunnel 2 # 2
+    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Room = {},
+    Exit = {},
+    SkipReward = true
+  },
+  C45 = { -- Tunnel 2 # 3
+    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Room = {},
+    Exit = {
+    },
     SkipReward = true
   },
 }
