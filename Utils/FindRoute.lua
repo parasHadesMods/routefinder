@@ -76,7 +76,11 @@ function CreateSecretDoor( currentRun )
 end
 
 ModUtil.WrapBaseFunction("GetPreviousStore", function( baseFunc, args )
-  return {}
+  local oldCurrentRun = CurrentRun
+  CurrentRun = args.ParasDoorPredictions.CurrentRun
+  local r = baseFunc(args)
+  CurrentRun = oldCurrentRun
+  return r
 end)
 
 ModUtil.WrapBaseFunction("CheckPreviousReward", function( baseFunc, currentRun, room, pcr, args)
@@ -194,6 +198,13 @@ function MoveToNextRoom(previousRun, reward, door)
   local room = DeepCopyTable(door.Room)
   if room.WingRoom then
     run.WingDepth = (run.WingDepth or 0) + 1
+  else
+    run.WingDepth = 0
+  end
+  if room.PersistentStore then
+    if room.Store == nil then
+      room.Store = { StoreOptions = reward.StoreOptions }
+    end
   end
   room.Encounter = reward.Prediction.Encounter
   if run.CurrentRoom.CloseDoorsOnUse then
