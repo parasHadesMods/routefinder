@@ -201,6 +201,9 @@ function MoveToNextRoom(previousRun, reward, door)
   else
     run.WingDepth = 0
   end
+  if room.WingEndRoom then
+    run.CompletedStyxWings = (run.CompletedStyxWings or 0) + 1
+  end
   if room.PersistentStore then
     if room.Store == nil then
       room.Store = { StoreOptions = reward.StoreOptions }

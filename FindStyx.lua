@@ -1,7 +1,5 @@
 Import "Utils/FindRoute.lua"
 
-TriggerCooldown("ZagreusForkingPathVoiceLinesPlayed")
-
 local styxDoor = {
   Room = CreateRoom(
     RoomData["D_Hub"],
@@ -25,7 +23,7 @@ local styxDoor = {
 print(NextSeeds[1])
 local requirements = {
   C39 = { -- Styx Hub
-    Offset = { Min = 222, Max = 222 },
+    Offset = { Min = 0, Max = 10000 },
     Room = {
     },
     Exit = {
@@ -83,7 +81,7 @@ local requirements = {
     SkipReward = true
   },
   C45 = { -- Tunnel 2 # 1
-    Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
+    Offset = { Min = 33, Max = 33, AddEstimatedOffset = false},
     Room = {},
     Exit = {},
     SkipReward = true
@@ -96,7 +94,13 @@ local requirements = {
   },
   C47 = { -- Tunnel 2 # 3
     Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
-    Room = {},
+    Room = {
+      Exits = {
+        {
+          RoomName = "D_Reprieve01" -- Sack
+        }
+      }
+    },
     Exit = {
     },
     SkipReward = true
