@@ -153,6 +153,7 @@ function PredictRoomOptions( run, door, range )
         local exit = {
           RoomName = reward.RoomName,
           Room = reward.Room,
+          DoorObjectId = reward.DoorObjectId,
           ChaosGate = reward.ChaosGate,
           WellShop = reward.WellShop,
           StyxMiniBoss = reward.StyxMiniBoss,
@@ -224,15 +225,6 @@ function ExitDoors(run, room_requirements, reward)
   if room_requirements.Exit == "SecretDoor" then
     table.insert(doors, CreateSecretDoor(run))
   else
-    local allDoors = {}
-    for k, exit in pairs(reward.Exits) do
-      local door = {
-        Room = DeepCopyTable(exit.Room),
-        ObjectId = k
-      }
-      exit.DoorObjectId = k
-      table.insert(allDoors, door)
-    end
     if run.CurrentRoom.PersistentExitDoorRewards then
       if run.CurrentRoom.OfferedRewards == nil then
         run.CurrentRoom.OfferedRewards = {}
@@ -246,7 +238,10 @@ function ExitDoors(run, room_requirements, reward)
       end
     end
     for k, exit in pairs(filter(room_requirements.Exit, reward.Exits)) do
-      table.insert(doors, allDoors[exit.DoorObjectId])
+      table.insert(doors, {
+        Room = DeepCopyTable(exit.Room),
+        ObjectId = exit.DoorObjectId
+      })
     end
   end
   return doors
