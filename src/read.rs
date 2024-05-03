@@ -1,13 +1,13 @@
 use std::convert::TryInto;
 
 pub fn byte(loadstate: &mut &[u8], err: String) -> Result<u8, String> {
-  match loadstate.split_first() {
-    Some((first, rest)) => {
-      *loadstate = rest;
-      Ok(*first)
-    },
-    None => Err(err)
-  }
+    match loadstate.split_first() {
+        Some((first, rest)) => {
+            *loadstate = rest;
+            Ok(*first)
+        }
+        None => Err(err),
+    }
 }
 
 pub fn i32(loadstate: &mut &[u8], err: String) -> Result<i32, String> {

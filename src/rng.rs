@@ -1,5 +1,5 @@
 // Based on https://github.com/rust-random/rand/blob/master/rand_pcg/src/pcg64.rs, which is
-// 
+//
 // Copyright 2018 Developers of the Rand project.
 // Copyright 2017 Paul Dicker.
 // Copyright 2014-2017 Melissa O'Neill and PCG Project contributors
@@ -8,7 +8,8 @@
 
 use core::fmt;
 use rand_core::{impls, Error, RngCore};
-#[cfg(feature = "serde1")] use serde::{Deserialize, Serialize};
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 
 // This is the default multiplier used by PCG for 64-bit state.
 const MULTIPLIER: u64 = 0x5851f42d4c957f2d;
@@ -33,7 +34,7 @@ const INITIAL_OFFSET: u64 = 0x3d657cc62bc341e;
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct SggPcg {
-    state: u64
+    state: u64,
 }
 
 impl SggPcg {
@@ -71,17 +72,14 @@ impl SggPcg {
 
     pub fn new(seed: u64) -> Self {
         SggPcg {
-            state : seed.wrapping_mul(MULTIPLIER).wrapping_sub(INITIAL_OFFSET)
+            state: seed.wrapping_mul(MULTIPLIER).wrapping_sub(INITIAL_OFFSET),
         }
     }
 
     #[inline]
     fn step(&mut self) {
         // prepare the LCG for the next round
-        self.state = self
-            .state
-            .wrapping_mul(MULTIPLIER)
-            .wrapping_add(INCREMENT);
+        self.state = self.state.wrapping_mul(MULTIPLIER).wrapping_add(INCREMENT);
     }
 }
 
