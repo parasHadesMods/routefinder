@@ -1,4 +1,6 @@
 Import "Utils/FindRoute.lua"
+Import "Utils/LazyDeepCopyTable.lua"
+DeepCopyTable = LazyDeepCopyTable
 
 local styxDoor = {
   Room = CreateRoom(
@@ -21,9 +23,10 @@ local styxDoor = {
 -- end
 
 print(NextSeeds[1])
+
 local requirements = {
   C39 = { -- Styx Hub
-    Offset = { Min = 0, Max = 10000 },
+    Offset = { Min = 10, Max = 100 },
     Room = {
     },
     Exit = {
@@ -35,9 +38,9 @@ local requirements = {
     -- Which Path adds extra increment (skippable), as does ... something else
     Offset = { Min = 12, Max = 12, AddEstimatedOffset = false },
     Room = {
-      Enemies = function(enemies)
-        return not one_matches("Crawler" , enemies)
-      end
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end
     },
     Exit = {},
     SkipReward = true
@@ -46,9 +49,9 @@ local requirements = {
     -- Extra offset from chaos curse expiring
     Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
     Room = {
-      Enemies = function(enemies)
-        return not one_matches("Crawler" , enemies)
-      end
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end
     },
     Exit = {},
     SkipReward = true
@@ -57,14 +60,14 @@ local requirements = {
     -- Extra offset from another chaos curse expiring!
     Offset = { Min = 1, Max = 1, AddEstimatedOffset = true },
     Room = {
-      Enemies = function(enemies)
-        return not one_matches("Crawler" , enemies)
-      end,
-      Exits = {
-        {
-          RoomName = "D_MiniBoss04" -- Bother
-        }
-      }
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end,
+      -- Exits = {
+      --   {
+      --     RoomName = "D_MiniBoss04" -- Bother
+      --   }
+      -- }
     },
     Exit = {},
     SkipReward = true
@@ -82,24 +85,35 @@ local requirements = {
   },
   C45 = { -- Tunnel 2 # 1
     Offset = { Min = 33, Max = 33, AddEstimatedOffset = false},
-    Room = {},
+    Room = {
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end
+    },
     Exit = {},
     SkipReward = true
   },
   C46 = { -- Tunnel 2 # 2
     Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
-    Room = {},
+    Room = {
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end
+    },
     Exit = {},
     SkipReward = true
   },
   C47 = { -- Tunnel 2 # 3
     Offset = { Min = 0, Max = 0, AddEstimatedOffset = true},
     Room = {
-      Exits = {
-        {
-          RoomName = "D_Reprieve01" -- Sack
-        }
-      }
+      -- Enemies = function(enemies)
+      --   return not one_matches("Crawler" , enemies)
+      -- end,
+      -- Exits = {
+      --   {
+      --     RoomName = "D_Reprieve01" -- Sack
+      --   }
+      -- }
     },
     Exit = {
     },
