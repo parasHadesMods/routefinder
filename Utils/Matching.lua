@@ -107,6 +107,20 @@ function matches_one(options, candidate)
   return false
 end
 
+function minimum_matches( requirements, candidates, min )
+  if type(candidates) ~= "table" then
+    debug_false("minimum_matches: not table")
+    return false
+  end
+  local count = 0
+  for _,candidate in pairs(candidates) do
+    if matches(requirements, candidate) then
+      count = count + 1
+    end
+  end
+  return count >= min
+end
+
 function filter(requirements, candidates)
   local matched = {}
   for _,candidate in pairs(candidates) do
@@ -115,4 +129,34 @@ function filter(requirements, candidates)
     end
   end
   return matched
+end
+
+function any_matchers(requirements, candidates)
+  if type(candidates) ~= "table" then
+    debug_false("any_matchers: not table")
+    return false
+  end
+  for k,v in pairs(candidates) do
+      -- path_push(k)
+    local inRequirements = false
+    for _k,_v in pairs( requirements ) do
+      if requirements[_k] == v then inRequirements = true end
+    end
+    -- path_pop()
+    if not inRequirements then return false end
+  end
+  return true
+end
+
+function no_matchers(requirements, candidates)
+  if type(candidates) ~= "table" then
+    debug_false("no_matchers: not table")
+    return false
+  end
+  for k,v in pairs(candidates) do
+    for _k, _v in pairs ( requirements ) do
+      if requirements[_k] == v then return false end
+    end
+  end
+  return true
 end

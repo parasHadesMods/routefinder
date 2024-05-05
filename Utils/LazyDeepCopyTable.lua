@@ -27,7 +27,7 @@ local StubMetaTable = {
 
 table.concat = LazyDeepCopy.Wrap(table.concat)
 table.insert = LazyDeepCopy.Wrap(table.insert)
--- table.move
+-- todo: table.move ? not used by sgg
 table.remove = LazyDeepCopy.Wrap(table.remove)
 table.sort = LazyDeepCopy.Wrap(table.sort)
 table.unpack = LazyDeepCopy.Wrap(table.unpack)

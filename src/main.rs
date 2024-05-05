@@ -12,7 +12,6 @@ use rng::SggPcg;
 use save::UncompressedSize;
 use std::cell::RefCell;
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -111,8 +110,12 @@ fn main() -> Result<()> {
         .exec()?;
 
         // load and run script
-        let _ = load_lua_file(&lua, route_finder_script);
-
+        match load_lua_file(&lua, route_finder_script) {
+            Ok(()) => {}
+            Err(err) => {
+                println!("Error: {}", err.to_string());
+            }
+        };
         Ok(())
     })?;
 
