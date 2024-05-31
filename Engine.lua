@@ -55,7 +55,10 @@ local nop_functions = {
   "RunWeaponMethod",
   "SetEffectProperty",
   "Destroy",
-  "SwapWeapon"
+  "SwapWeapon",
+  "SpawnObstacle",
+  "SetAnimation",
+  "SetScaleX"
 }
 
 for _, name in pairs(nop_functions) do
