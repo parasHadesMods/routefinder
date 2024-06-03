@@ -113,6 +113,10 @@ function PickUpReward(run, requirements, reward)
     table.insert(run.Hero.Traits, trait)
   end
   run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
+  local oldRun = CurrentRun
+  CurrentRun = run
+  UpdateHeroTraitDictionary()
+  CurrentRun = oldRun
 end
 
 function PredictRoomOptions( run, door, range )
