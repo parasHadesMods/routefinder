@@ -8,7 +8,6 @@
 
 use core::fmt;
 use rand_core::{impls, Error, RngCore};
-#[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
 // This is the default multiplier used by PCG for 64-bit state.
@@ -31,8 +30,7 @@ const INITIAL_OFFSET: u64 = 0x3d657cc62bc341e;
 ///
 /// Note that two generators with different stream parameter may be closely
 /// correlated.
-#[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SggPcg {
     state: u64,
 }
@@ -80,6 +78,18 @@ impl SggPcg {
     fn step(&mut self) {
         // prepare the LCG for the next round
         self.state = self.state.wrapping_mul(MULTIPLIER).wrapping_add(INCREMENT);
+    }
+
+    pub fn save_to_file(&self, path: &str) -> Result<(), std::io::Error> {
+        let json = serde_json::to_string_pretty(self)?;
+        std::fs::write(path, json)?;
+        Ok(())
+    }
+
+    pub fn load_from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let json = std::fs::read_to_string(path)?;
+        let rng: SggPcg = serde_json::from_str(&json)?;
+        Ok(rng)
     }
 }
 

@@ -3,7 +3,7 @@ mod luabins;
 mod read;
 mod rng;
 mod save;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use libm::ldexp;
 use lz4;
 use mlua::{Lua, LuaOptions, Table, Value, Variadic};
@@ -18,30 +18,67 @@ use std::rc::Rc;
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    script: std::path::PathBuf,
+    #[command(subcommand)]
+    command: Commands,
+}
 
-    /// Save file to use as starting point
-    #[arg(short = 'f', long, value_name = "FILE")]
-    save_file: PathBuf,
+#[derive(Subcommand)]
+enum Commands {
+    /// Run a Lua script with game simulation
+    Run {
+        script: std::path::PathBuf,
 
-    /// Hades Scripts directory
-    #[arg(short = 's', long, value_name = "FILE")]
-    scripts_dir: PathBuf,
+        /// Save file to use as starting point
+        #[arg(short = 'f', long, value_name = "FILE")]
+        save_file: PathBuf,
+
+        /// Hades Scripts directory
+        #[arg(short = 's', long, value_name = "FILE")]
+        scripts_dir: PathBuf,
+    },
+    /// RNG operations
+    Rng {
+        #[command(subcommand)]
+        rng_command: RngCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum RngCommands {
+    /// Set RNG seed
+    SetSeed {
+        /// Seed value (signed integer, will be converted to unsigned)
+        seed: i64,
+    },
+    /// Advance RNG by specified steps
+    Advance {
+        /// Number of steps to advance (signed integer, will be converted to unsigned)
+        steps: i64,
+    },
 }
 
 type Result<T, E = error::Error> = core::result::Result<T, E>;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let route_finder_script = &cli.script;
-    let hades_scripts_dir = &cli.scripts_dir;
 
+    match cli.command {
+        Commands::Run { script, save_file, scripts_dir } => {
+            run_script(script, save_file, scripts_dir)
+        }
+        Commands::Rng { rng_command } => {
+            handle_rng_command(rng_command)
+        }
+    }
+}
+
+fn run_script(route_finder_script: PathBuf, save_file_path: PathBuf, hades_scripts_dir: PathBuf) -> Result<()> {
     let lua = unsafe { Lua::unsafe_new_with(mlua::StdLib::ALL, LuaOptions::new()) };
 
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
 
     // Load save file
-    let save_file = read_file(cli.save_file)?;
+    let save_file = read_file(save_file_path)?;
     let lua_state_lz4 = save::read(&mut save_file.as_slice(), "save".to_string())?.lua_state_lz4;
     let lua_state = lz4::block::decompress(
         &lua_state_lz4.as_slice(),
@@ -110,7 +147,7 @@ fn main() -> Result<()> {
         .exec()?;
 
         // load and run script
-        match load_lua_file(&lua, route_finder_script) {
+        match load_lua_file(&lua, &route_finder_script) {
             Ok(()) => {}
             Err(err) => {
                 println!("Error: {}", err.to_string());
@@ -119,6 +156,65 @@ fn main() -> Result<()> {
         Ok(())
     })?;
 
+    Ok(())
+}
+
+fn handle_rng_command(rng_command: RngCommands) -> Result<()> {
+    const STATE_FILE: &str = ".rng.json";
+
+    match rng_command {
+        RngCommands::SetSeed { seed } => {
+            let mut rng = SggPcg::new(seed as u64);
+            println!("RNG seed set to: {}", seed);
+
+            let mut preview_rng: SggPcg = rng.clone();
+            for i in 0..3 {
+                let value = preview_rng.next_u32();
+                println!("  {}: {}", i, value);
+            }
+
+            // Save state to file
+            if let Err(e) = rng.save_to_file(STATE_FILE) {
+                eprintln!("Warning: Failed to save RNG state: {}", e);
+            }
+        }
+        RngCommands::Advance { steps } => {
+            // Load existing state from file, or create new if file doesn't exist
+            let mut rng = match SggPcg::load_from_file(STATE_FILE) {
+                Ok(loaded_rng) => {
+                    println!("Loaded RNG state from {}", STATE_FILE);
+                    loaded_rng
+                }
+                Err(_) => {
+                    println!("No existing RNG state found, creating new with seed 0");
+                    SggPcg::new(0)
+                }
+            };
+
+            println!("Current RNG state before advancing:");
+            let mut preview_rng: SggPcg = rng.clone();
+            for i in 0..3 {
+                let value = preview_rng.next_u32();
+                println!("  {}: {}", i, value);
+            }
+
+            rng.advance(steps as u64);
+
+            println!("RNG advanced by {} steps", steps);
+            println!("Values after advance:");
+            preview_rng = rng.clone();
+            for i in 0..3 {
+                let value = preview_rng.next_u32();
+                println!("  {}: {}", i, value);
+            }
+
+            // Save state to file
+            if let Err(e) = rng.save_to_file(STATE_FILE) {
+                eprintln!("Warning: Failed to save RNG state: {}", e);
+            }
+        }
+    }
+    
     Ok(())
 }
 
