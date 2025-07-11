@@ -4,6 +4,7 @@ mod read;
 mod reverse_rng;
 mod rng;
 mod save;
+mod smt_reverse_engineer;
 use clap::{Parser, Subcommand};
 use libm::ldexp;
 use lz4;
@@ -46,6 +47,14 @@ enum Commands {
     ReverseRng {
         /// Input file containing data points
         input_file: PathBuf,
+        
+        /// Method to use for reverse engineering
+        #[arg(long, default_value = "brute-force")]
+        method: String,
+        
+        /// Timeout in milliseconds for SMT solver
+        #[arg(long, default_value = "10000")]
+        timeout_ms: u64,
     },
 }
 
@@ -75,8 +84,8 @@ fn main() -> Result<()> {
         Commands::Rng { rng_command } => {
             handle_rng_command(rng_command)
         }
-        Commands::ReverseRng { input_file } => {
-            reverse_rng::run(input_file)
+        Commands::ReverseRng { input_file, method, timeout_ms } => {
+            handle_reverse_rng_command(input_file, method, timeout_ms)
         }
     }
 }
@@ -221,6 +230,51 @@ fn handle_rng_command(rng_command: RngCommands) -> Result<()> {
             if let Err(e) = rng.save_to_file(STATE_FILE) {
                 eprintln!("Warning: Failed to save RNG state: {}", e);
             }
+        }
+    }
+    
+    Ok(())
+}
+
+fn handle_reverse_rng_command(input_file: PathBuf, method: String, timeout_ms: u64) -> Result<()> {
+    use reverse_rng::data_point;
+    
+    println!("Reverse engineering RNG state from: {:?}", input_file);
+    println!("Method: {}", method);
+    if method == "smt" {
+        println!("SMT Solver timeout: {}ms", timeout_ms);
+    }
+    
+    // Parse input file
+    let data_points = data_point::parse_input_file(&input_file)?;
+    println!("Loaded {} data points", data_points.len());
+    
+    // Perform reverse engineering based on method
+    let start_time = std::time::Instant::now();
+    
+    let candidates = match method.as_str() {
+        "brute-force" => {
+            println!("Using brute force method...");
+            reverse_rng::search::find_original_state(&data_points)?
+        }
+        "smt" => {
+            println!("Using SMT solver method...");
+            smt_reverse_engineer::smt_reverse_engineer(&data_points)?
+        }
+        _ => {
+            return Err(error::Error::from(format!("Unknown method: {}. Use 'brute-force' or 'smt'", method)));
+        }
+    };
+    
+    let elapsed = start_time.elapsed();
+    println!("Reverse engineering completed in {:.2}s", elapsed.as_secs_f64());
+    
+    if candidates.is_empty() {
+        println!("No valid RNG states found that match all data points");
+    } else {
+        println!("Found {} candidate state(s):", candidates.len());
+        for (i, candidate) in candidates.iter().enumerate() {
+            println!("  Candidate {}: seed {}", i + 1, candidate.seed);
         }
     }
     
