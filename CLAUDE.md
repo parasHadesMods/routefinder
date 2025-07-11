@@ -42,7 +42,7 @@ cargo run -- <script.lua> --save-file <save_file.sav> --scripts-dir <hades_scrip
 cargo run -- FreshFilePredict.lua --save-file ./FreshFile.sav --scripts-dir ~/legendary/Hades/Content/Scripts/
 
 # RNG reverse engineering from observed data points
-cargo run --bin routefinder -- reverse-rng data_points.txt
+cargo run -- reverse-rng data_points.txt
 
 # Generate test data for RNG reverse engineering validation
 cargo run --bin generate_test_data > test_data.txt
@@ -97,10 +97,10 @@ The tool can reverse engineer original RNG seeds from observed random number out
 ### Usage
 ```bash
 # Reverse engineer from data points file
-cargo run --bin routefinder -- reverse-rng data_points.txt
+cargo run -- reverse-rng data_points.txt
 
 # For better performance, use release build
-cargo run --bin routefinder --release -- reverse-rng data_points.txt
+cargo run --release -- reverse-rng data_points.txt
 ```
 
 ### Input Format
@@ -122,5 +122,5 @@ chamber3,10,-50.0,50.0,42.49
 Generate known test data for validation:
 ```bash
 cargo run --bin generate_test_data > known_seed_test.txt
-cargo run --bin routefinder --release -- reverse-rng known_seed_test.txt
+cargo run --release -- reverse-rng known_seed_test.txt
 ```

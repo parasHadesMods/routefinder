@@ -190,4 +190,131 @@ mod tests {
         let middle_value = u32::MAX / 2;
         assert!(dp.is_consistent_with(middle_value));
     }
+    
+    #[test]
+    fn test_complete_coverage_without_overlap() {
+        // Test that consecutive two-decimal values have adjacent u32 ranges
+        // without gaps or overlaps by checking just the endpoints
+        
+        let range_min = 1.3;
+        let range_max = 1.5;
+        
+        // Generate consecutive decimal values to test adjacency
+        let start_hundredths = (range_min * 100.0_f64).round() as i32;
+        let end_hundredths = (range_max * 100.0_f64).round() as i32;
+        
+        let mut decimal_values = Vec::new();
+        for hundredths in start_hundredths..=end_hundredths {
+            let decimal_val = hundredths as f64 / 100.0;
+            if decimal_val >= range_min && decimal_val <= range_max {
+                decimal_values.push(decimal_val);
+            }
+        }
+        
+        println!("Testing {} consecutive decimal values in [{:.2}, {:.2}]", 
+                 decimal_values.len(), range_min, range_max);
+        
+        // Check that consecutive values have adjacent ranges
+        for i in 0..decimal_values.len() - 1 {
+            let curr_dp = DataPoint {
+                offset: 0,
+                range_min,
+                range_max,
+                observed: decimal_values[i],
+                name: format!("test_{:.2}", decimal_values[i]),
+            };
+            
+            let next_dp = DataPoint {
+                offset: 0,
+                range_min,
+                range_max,
+                observed: decimal_values[i + 1],
+                name: format!("test_{:.2}", decimal_values[i + 1]),
+            };
+            
+            let (curr_min, curr_max) = curr_dp.valid_u32_range();
+            let (next_min, next_max) = next_dp.valid_u32_range();
+            
+            // Check for perfect adjacency: curr_max + 1 should equal next_min
+            if curr_max + 1 != next_min {
+                if curr_max + 1 < next_min {
+                    panic!("Gap found between {:.2} (ends at {}) and {:.2} (starts at {}): missing range [{}, {}]",
+                           decimal_values[i], curr_max, decimal_values[i + 1], next_min, curr_max + 1, next_min - 1);
+                } else {
+                    panic!("Overlap found between {:.2} (ends at {}) and {:.2} (starts at {}): overlap range [{}, {}]",
+                           decimal_values[i], curr_max, decimal_values[i + 1], next_min, next_min, curr_max);
+                }
+            }
+            
+            println!("  {:.2}: [{}, {}] -> {:.2}: [{}, {}] ✓", 
+                     decimal_values[i], curr_min, curr_max,
+                     decimal_values[i + 1], next_min, next_max);
+        }
+        
+        println!("All consecutive decimal values have perfectly adjacent u32 ranges");
+    }
+    
+    #[test]
+    fn test_real_ursa_data_coverage() {
+        // Test coverage for each range from real_ursa_data.txt using endpoint checking
+        let test_ranges = vec![
+            (1.3, 1.5, "nassault range"),
+            (1.6, 1.8, "nambush range"), 
+            (0.11, 0.2, "nfavor range"),
+            (1.4, 1.6, "nlunge range"),
+            (1.3, 1.4, "nstrike range"),
+            (1.5, 1.8, "neclipse range"),
+        ];
+        
+        for (range_min, range_max, description) in test_ranges {
+            println!("\nTesting {}: [{:.2}, {:.2}]", description, range_min, range_max);
+            
+            // Generate consecutive decimal values in this range
+            let start_hundredths = (range_min * 100.0_f64).round() as i32;
+            let end_hundredths = (range_max * 100.0_f64).round() as i32;
+            
+            let mut decimal_values = Vec::new();
+            for hundredths in start_hundredths..=end_hundredths {
+                let decimal_val = hundredths as f64 / 100.0;
+                if decimal_val >= range_min && decimal_val <= range_max {
+                    decimal_values.push(decimal_val);
+                }
+            }
+            
+            println!("  Testing {} consecutive decimal values", decimal_values.len());
+            
+            // Check all adjacencies
+            let mut issues_found = 0;
+            
+            for i in 0..decimal_values.len() - 1 {
+                let curr_dp = DataPoint {
+                    offset: 0, range_min, range_max,
+                    observed: decimal_values[i],
+                    name: format!("test_{:.2}", decimal_values[i]),
+                };
+                let next_dp = DataPoint {
+                    offset: 0, range_min, range_max,
+                    observed: decimal_values[i + 1],
+                    name: format!("test_{:.2}", decimal_values[i + 1]),
+                };
+                
+                let (_, curr_max) = curr_dp.valid_u32_range();
+                let (next_min, _) = next_dp.valid_u32_range();
+                
+                if curr_max + 1 != next_min {
+                    issues_found += 1;
+                    if curr_max + 1 < next_min {
+                        println!("  Gap: {:.2} ends at {}, {:.2} starts at {}", 
+                                decimal_values[i], curr_max, decimal_values[i + 1], next_min);
+                    } else {
+                        println!("  Overlap: {:.2} ends at {}, {:.2} starts at {}", 
+                                decimal_values[i], curr_max, decimal_values[i + 1], next_min);
+                    }
+                }
+            }
+            
+            assert_eq!(issues_found, 0, "Found {} coverage issues in {}", issues_found, description);
+            println!("  ✓ No gaps or overlaps found in all adjacencies");
+        }
+    }
 }
