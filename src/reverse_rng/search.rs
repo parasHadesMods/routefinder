@@ -61,9 +61,12 @@ fn is_valid_seed(seed: i32, data_points: &[DataPoint]) -> bool {
     let rng = SggPcg::new(seed as u64);
     
     for data_point in data_points {
-        // Advance RNG to the offset for this data point
+        // Advance RNG to one position before the offset, since the offset 
+        // represents the position where the value was generated (not where to advance to)
         let mut test_rng = rng.clone();
-        test_rng.advance(data_point.offset);
+        if data_point.offset > 0 {
+            test_rng.advance(data_point.offset - 1);
+        }
         
         // Generate the value
         let generated_u32 = test_rng.next_u32();
@@ -94,9 +97,9 @@ mod tests {
         let mut data_points = Vec::new();
         
         for i in 0..3 {
-            let offset = i * 10;
+            let rng_position = i * 10;
             let mut test_rng = SggPcg::new(known_seed as u64);
-            test_rng.advance(offset);
+            test_rng.advance(rng_position);
             
             let value = test_rng.next_u32();
             let fraction = value as f64 / u32::MAX as f64;
@@ -105,8 +108,10 @@ mod tests {
             let scaled = fraction * (range_max - range_min) + range_min;
             let observed = (scaled * 100.0).round() / 100.0;
             
+            // The offset in the data point represents the position where the value was generated
+            // So we need to add 1 to account for the next_u32() call
             data_points.push(DataPoint {
-                offset,
+                offset: rng_position + 1,
                 range_min,
                 range_max,
                 observed,
