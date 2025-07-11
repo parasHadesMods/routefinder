@@ -2,10 +2,15 @@
 name = "routefinder"
 version = "0.1.0"
 edition = "2018"
+default-run = "routefinder"
 
 [lib]
 name = "routefinder"
 path = "src/lib.rs"
+
+[[bin]]
+name = "routefinder"
+path = "src/main.rs"
 
 [dependencies]
 rand = "0.8.4"
