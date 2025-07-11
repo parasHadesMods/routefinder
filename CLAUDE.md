@@ -124,3 +124,12 @@ Generate known test data for validation:
 cargo run --bin generate_test_data > known_seed_test.txt
 cargo run --release -- reverse-rng known_seed_test.txt
 ```
+
+### Benchmarking
+To track optimization performance:
+```bash
+# Run benchmark using real_ursa_data_fixed.txt (expected seed: 1152303697)
+./bench_reverse_rng.sh
+
+# Expected baseline: ~60 seconds with release build
+```
