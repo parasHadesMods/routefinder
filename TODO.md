@@ -1,7 +1,9 @@
 # RNG State Reverse Engineering - Implementation Plan
 
 ## Problem Overview
-Determine the original 64-bit PCG RNG state from observable behavior data points. Each data point contains:
+Determine the original 64-bit PCG RNG state from observable behavior data points. **NEW CONSTRAINT**: The solution is guaranteed to be the result of seeding the RNG with a specific signed 32-bit integer value (i.e., equivalent to using the set-seed function in the CLI).
+
+Each data point contains:
 - Offset from original state (accumulated RNG advances)
 - Range (min, max) for random number generation
 - Observed rounded result (2 decimal places)
@@ -16,7 +18,8 @@ Determine the original 64-bit PCG RNG state from observable behavior data points
 
 ### RNG Implementation Details
 - **Generator**: PCG XSH RR 64/32 (64-bit state, 32-bit output)
-- **State Space**: 2^64 possible states (18.4 quintillion)
+- **State Space**: ~~2^64 possible states~~ **REDUCED TO 2^32 possible states** (4.3 billion) due to seed constraint
+- **Seed Constraint**: Solution must be reachable via `SggPcg::seed(i32_value as u64)`
 - **LCG Constants**: MULTIPLIER = 0x5851f42d4c957f2d, INCREMENT = 0xb47c73972972b7b7
 - **Output Function**: XSH RR (xorshift high, random rotate)
 - **Advance Function**: Efficient O(log n) state jumping
@@ -28,9 +31,10 @@ Determine the original 64-bit PCG RNG state from observable behavior data points
 - Multiple data points create constraint system
 
 ### Performance Requirements
-- Brute force (2^64 states): Infeasible (~584 years at 1B checks/sec)
-- Target: Complete search in < 10 seconds
-- Need 10^12 to 10^15 speedup over brute force
+- ~~Brute force (2^64 states): Infeasible (~584 years at 1B checks/sec)~~
+- **NEW: Brute force (2^32 states): Feasible (~4.3 seconds at 1B checks/sec)**
+- Target: Complete search in < 10 seconds **EASILY ACHIEVABLE**
+- **Dramatic improvement**: 2^32 reduction in search space eliminates need for complex algorithms
 
 ## Implementation Plan
 
@@ -70,35 +74,30 @@ Determine the original 64-bit PCG RNG state from observable behavior data points
    - Create validity checking function for state candidates
    - **Performance Modeling**: Estimate execution time based on constraint strength
 
-### Phase 2: Mathematical Optimization Strategies
+### Phase 2: Simplified Search Strategy (Due to Reduced Search Space)
 
-#### Strategy 1: Constraint Propagation
+#### Primary Strategy: Direct Brute Force with Early Termination
+1. **Seed Space Iteration**: Test all i32 values (-2^31 to 2^31-1)
+2. **State Generation**: For each seed, compute `SggPcg::seed(seed as u64)` to get initial state
+3. **Constraint Validation**: Verify all data points against the seeded state
+4. **Early Termination**: Stop on first invalid data point for each candidate
+
+#### Secondary Strategy: Constraint Pre-filtering (Optional Optimization)
 1. **Range Calculation**: For each data point, compute valid u32 ranges
-2. **State Validation**: Given a candidate state, verify all constraints
-3. **Early Termination**: Eliminate impossible states quickly
+2. **Seed Elimination**: Quickly eliminate impossible seeds before full validation
+3. **Parallel Processing**: Test multiple seeds simultaneously
 
-#### Strategy 2: Meet-in-the-Middle Attack
-1. **Problem Splitting**: Split 64-bit state into two 32-bit halves
-2. **Forward Search**: From potential "left half" states, generate expected outputs
-3. **Backward Search**: From observed outputs, work backwards to "right half"
-4. **Intersection**: Find matching pairs
+### Phase 3: Performance Optimizations (Now Optional)
 
-#### Strategy 3: Differential Analysis
-1. **Relative Offsets**: Use differences between data points
-2. **State Relationships**: Leverage mathematical properties of LCG
-3. **Constraint Tightening**: Each additional data point reduces search space exponentially
+#### Simple Optimizations (Low Priority)
+1. **Parallel Processing**: Multi-threaded seed testing
+2. **Early Termination**: Skip validation on first constraint failure
+3. **SIMD Instructions**: Batch process multiple seeds simultaneously
 
-### Phase 3: Advanced Search Algorithms
-
-#### Primary Algorithm: Hierarchical Search
-1. **Coarse Grid**: Test every 2^32 states (reduces to 2^32 space)
-2. **Fine Tuning**: For promising candidates, test nearby states
-3. **Verification**: Confirm with all data points
-
-#### Secondary Algorithm: Probabilistic Search
-1. **Genetic Algorithm**: Evolve state candidates
-2. **Fitness Function**: Minimize error across all data points
-3. **Population Management**: Maintain diverse candidate pool
+#### Advanced Optimizations (Likely Unnecessary)
+1. **Smart Ordering**: Test more likely seed ranges first (e.g., smaller absolute values)
+2. **Constraint Scoring**: Order data points by selectivity
+3. **Adaptive Batching**: Adjust chunk sizes based on constraint hit rates
 
 ### Phase 4: Testing & Benchmarking Framework
 
@@ -153,41 +152,34 @@ fn validate_solution(original_state: u64, data_points: &[DataPoint]) -> bool {
 2. **Adaptive Precision**: Adjust search granularity based on constraints
 3. **Constraint Ordering**: Process most restrictive constraints first
 
-## Implementation Phases
+## Implementation Phases (REVISED - Much Simpler)
 
-### Phase 1: Minimum Viable Product (1-2 days)
+### Phase 1: Core Implementation (1 day)
 - [ ] CLI interface and input parsing
-- [ ] Basic brute force search (for small test cases)
-- [ ] State validation function
-- [ ] Simple test cases
-- [ ] Initial time optimization modeling
+- [ ] Simple brute force seed iteration (-2^31 to 2^31-1)
+- [ ] State validation function using `SggPcg::seed()`
+- [ ] Basic test cases
+- [ ] Progress reporting
 
-### Phase 2: Core Algorithms (3-5 days)
-- [ ] Constraint range calculation
-- [ ] Hierarchical search implementation
-- [ ] Meet-in-the-middle algorithm
-- [ ] Performance benchmarking framework
-- [ ] Execution time estimation based on data point count
+### Phase 2: Basic Optimizations (0.5-1 day)
+- [ ] Early termination on constraint failures
+- [ ] Multi-threading for parallel seed testing
+- [ ] Simple performance benchmarking
+- [ ] Error handling and edge cases
 
-### Phase 3: Optimization (3-4 days)
-- [ ] SIMD optimizations
-- [ ] Multi-threading
-- [ ] Advanced search strategies
-- [ ] Comprehensive testing
-- [ ] Data point recommendation system
-
-### Phase 4: Validation & Documentation (1-2 days)
-- [ ] Edge case testing
-- [ ] Performance documentation
+### Phase 3: Polish & Documentation (0.5 day)
 - [ ] Usage examples
-- [ ] Error handling
-- [ ] Time optimization analysis and recommendations
+- [ ] Performance documentation
+- [ ] Input validation and error messages
+- [ ] Final testing
 
-## Success Criteria
-- **Accuracy**: 95%+ success rate on test cases with 5+ data points
-- **Performance**: Complete search in <10 seconds for typical cases
-- **Time Optimization**: Provide accurate recommendations for optimal data point count
-- **Total Time Minimization**: Minimize (collection time + execution time) for user
+**TOTAL ESTIMATED TIME: 2-2.5 days (down from 7-12 days)**
+
+## Success Criteria (REVISED)
+- **Accuracy**: 100% success rate when correct seed exists in search space
+- **Performance**: Complete search in <5 seconds for typical cases (was <10 seconds)
+- **Simplicity**: Straightforward brute force approach, no complex algorithms needed
+- **Data Points**: Need 6-7 data points for unique identification (each eliminates 95% of remaining search space)
 - **Robustness**: Handle edge cases and invalid inputs gracefully
 - **Usability**: Clear CLI interface and error messages
 
@@ -215,11 +207,20 @@ src/
     └── reverse_rng_tests.rs
 ```
 
-## Expected Time Optimization Curve
-The algorithm should determine the optimal data point count by modeling:
-- **Few data points (1-3)**: High execution time due to large search space
-- **Medium data points (4-8)**: Rapidly decreasing execution time as constraints narrow search
-- **Many data points (9+)**: Diminishing returns, execution time approaches minimum
-- **Optimal range**: Likely 5-10 data points where `total_time = (n × 2) + execution_time(n)` is minimized
+## Expected Time Optimization Curve (REVISED - CORRECTED)
+With the 2^32 search space and severe rounding constraints:
+- **1 data point**: ~2^32/20 ≈ 200M possible seeds → insufficient
+- **2 data points**: ~200M/20 ≈ 10M possible seeds → still too many
+- **3 data points**: ~10M/20 ≈ 500K possible seeds → getting manageable
+- **4 data points**: ~500K/20 ≈ 25K possible seeds → small search space
+- **5 data points**: ~25K/20 ≈ 1.25K possible seeds → very manageable
+- **6 data points**: ~1.25K/20 ≈ 62 possible seeds → nearly unique
+- **7 data points**: ~62/20 ≈ 3 possible seeds → unique identification
 
-This plan balances mathematical rigor with practical time optimization, providing multiple fallback strategies and comprehensive testing to ensure the solution minimizes total user time while maintaining accuracy.
+**Constraint Math**: Each data point divides search space by ~20 (due to rounding into ~20 equal regions)
+- Need log₂₀(2^32) ≈ log₂₀(4.3B) ≈ 7.3 data points for unique identification
+- **Practical optimum**: 6-7 data points for confident unique identification
+
+**Execution time**: Still ~2-5 seconds regardless of data point count
+**New formula**: `total_time = (n × 2 seconds) + ~3 seconds`
+**Optimal range**: 6-7 data points balancing collection time vs. identification confidence
