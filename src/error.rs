@@ -14,6 +14,18 @@ impl std::fmt::Display for SimpleStringError {
 
 impl std::error::Error for SimpleStringError {}
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::Lua { error } => write!(f, "Lua error: {}", error),
+            Error::IO { error } => write!(f, "IO error: {}", error),
+            Error::SimpleString { error } => write!(f, "{}", error),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 #[derive(Debug)]
 pub enum Error {
     Lua { error: mlua::Error },

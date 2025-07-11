@@ -19,6 +19,7 @@ The project is a hybrid Rust/Lua application:
 
 - `src/main.rs`: Entry point that sets up Lua runtime, loads save files, and injects game-accurate RNG
 - `src/rng.rs`: Implements Supergiant Games' PCG random number generator for accurate simulation
+- `src/reverse_rng/`: RNG reverse engineering module for finding original seeds from observed outputs
 - `src/save.rs`: Handles decompression and parsing of Hades save files
 - `src/luabins.rs`: Lua binary serialization format parser
 - `Utils/FindRoute.lua`: Core route finding logic and run simulation
@@ -39,6 +40,12 @@ cargo run -- <script.lua> --save-file <save_file.sav> --scripts-dir <hades_scrip
 
 # Example: Run fresh file prediction
 cargo run -- FreshFilePredict.lua --save-file ./FreshFile.sav --scripts-dir ~/legendary/Hades/Content/Scripts/
+
+# RNG reverse engineering from observed data points
+cargo run --bin routefinder -- reverse-rng data_points.txt
+
+# Generate test data for RNG reverse engineering validation
+cargo run --bin generate_test_data > test_data.txt
 ```
 
 ### Development Scripts
@@ -50,6 +57,7 @@ cargo run -- FreshFilePredict.lua --save-file ./FreshFile.sav --scripts-dir ~/le
 - Test files are in `test/` directory with `.test` extension
 - Contains expected output for route finding algorithms
 - Run tests by comparing script output against `.test` files
+- Unit tests: `cargo test` for all tests, `cargo test reverse_rng` for RNG reverse engineering tests
 
 ## Environment Setup
 
@@ -81,3 +89,38 @@ Scripts typically output structured data showing:
 - Available exits and rewards
 - Upgrade options and rerolls
 - RNG seeds and usage counts
+
+## RNG Reverse Engineering
+
+The tool can reverse engineer original RNG seeds from observed random number outputs:
+
+### Usage
+```bash
+# Reverse engineer from data points file
+cargo run --bin routefinder -- reverse-rng data_points.txt
+
+# For better performance, use release build
+cargo run --bin routefinder --release -- reverse-rng data_points.txt
+```
+
+### Input Format
+Data points file should be CSV format:
+```
+# Format: name,offset,min,max,observed
+chamber1,0,0.0,100.0,52.42
+chamber2,5,0.0,1.0,0.59
+chamber3,10,-50.0,50.0,42.49
+```
+
+### Performance
+- **Search Space**: 2^32 possible seeds (~4.3 billion)
+- **Typical Runtime**: 30-90 seconds with release build
+- **Recommended Data Points**: 6-7 for unique identification
+- **Early Termination**: Stops when high-confidence match found
+
+### Test Data Generation
+Generate known test data for validation:
+```bash
+cargo run --bin generate_test_data > known_seed_test.txt
+cargo run --bin routefinder --release -- reverse-rng known_seed_test.txt
+```

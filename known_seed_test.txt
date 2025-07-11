@@ -1,0 +1,10 @@
+# Test data generated from known seed: 12345
+# Format: name,offset,min,max,observed
+chamber1,0,0,100,52.42
+chamber2,5,0,1,0.59
+chamber3,10,-50,50,42.49
+chamber4,15,0,10,9.22
+chamber5,20,100,200,171.77
+chamber6,25,0,1000,14.44
+chamber7,30,0,5,2.99
+# Expected seed to find: 12345

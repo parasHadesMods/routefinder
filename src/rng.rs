@@ -91,6 +91,10 @@ impl SggPcg {
         let rng: SggPcg = serde_json::from_str(&json)?;
         Ok(rng)
     }
+
+    pub fn state(&self) -> u64 {
+        self.state
+    }
 }
 
 // Custom Debug implementation that does not expose the internal state

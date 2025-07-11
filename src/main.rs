@@ -1,6 +1,7 @@
 mod error;
 mod luabins;
 mod read;
+mod reverse_rng;
 mod rng;
 mod save;
 use clap::{Parser, Subcommand};
@@ -41,6 +42,11 @@ enum Commands {
         #[command(subcommand)]
         rng_command: RngCommands,
     },
+    /// Reverse engineer RNG state from observation data
+    ReverseRng {
+        /// Input file containing data points
+        input_file: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -68,6 +74,9 @@ fn main() -> Result<()> {
         }
         Commands::Rng { rng_command } => {
             handle_rng_command(rng_command)
+        }
+        Commands::ReverseRng { input_file } => {
+            reverse_rng::run(input_file)
         }
     }
 }
@@ -164,7 +173,7 @@ fn handle_rng_command(rng_command: RngCommands) -> Result<()> {
 
     match rng_command {
         RngCommands::SetSeed { seed } => {
-            let mut rng = SggPcg::new(seed as u64);
+            let rng = SggPcg::new(seed as u64);
             println!("RNG seed set to: {}", seed);
 
             let mut preview_rng: SggPcg = rng.clone();
