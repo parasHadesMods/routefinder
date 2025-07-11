@@ -31,8 +31,8 @@ pub fn run(input_file: PathBuf) -> Result<(), Error> {
             } else {
                 println!("Found {} candidate state(s):", candidates.len());
                 for (i, candidate) in candidates.iter().enumerate() {
-                    println!("  Candidate {}: seed {} (confidence: {:.2})", 
-                             i + 1, candidate.seed, candidate.confidence);
+                    println!("  Candidate {}: seed {}", 
+                             i + 1, candidate.seed);
                 }
             }
         }

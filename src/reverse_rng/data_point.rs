@@ -15,8 +15,6 @@ pub struct DataPoint {
 pub struct StateCandidate {
     pub seed: i32,
     pub state: u64,
-    pub confidence: f64,
-    pub error_metrics: Vec<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,23 +27,49 @@ pub struct TimeOptimization {
 impl DataPoint {
     /// Calculate the valid u32 range for this data point given rounding constraints
     pub fn valid_u32_range(&self) -> (u32, u32) {
-        // Account for rounding to 2 decimal places (±0.005)
-        let min_observed = self.observed - 0.005;
-        let max_observed = self.observed + 0.005;
+        // We need to find which u32 values would produce our observed value
+        // when converted through: u32 -> [0,1] fraction -> scaled -> rounded to 2 decimal places
         
-        // Convert back to fractions
-        let min_fraction = (min_observed - self.range_min) / (self.range_max - self.range_min);
-        let max_fraction = (max_observed - self.range_min) / (self.range_max - self.range_min);
+        // The observed value represents values that round to this when rounded to 2 decimal places
+        // This means the actual value before rounding was in the range [observed - 0.005, observed + 0.005)
+        // But we need to be more precise about the boundaries
         
-        // Clamp to valid range [0, 1]
-        let min_fraction = min_fraction.max(0.0).min(1.0);
-        let max_fraction = max_fraction.max(0.0).min(1.0);
+        let range_size = self.range_max - self.range_min;
         
-        // Convert to u32 range
-        let min_u32 = (min_fraction * u32::MAX as f64) as u32;
-        let max_u32 = (max_fraction * u32::MAX as f64) as u32;
+        // Values that would round to our observed value:
+        // If observed = X.YZ, then actual values in [X.YZ - 0.005, X.YZ + 0.005) would round to X.YZ
         
-        (min_u32, max_u32)
+        // Find the range of actual values that would round to our observed value
+        let actual_min = self.observed - 0.005;
+        let actual_max = self.observed + 0.005;
+        
+        // Convert these actual values back to fractions of the [0,1] range
+        let fraction_min = (actual_min - self.range_min) / range_size;
+        let fraction_max = (actual_max - self.range_min) / range_size;
+        
+        // Clamp to valid [0, 1] range
+        let fraction_min = fraction_min.max(0.0).min(1.0);
+        let fraction_max = fraction_max.max(0.0).min(1.0);
+        
+        // Now find the u32 values that would map to these fractions
+        // u32 value V maps to fraction V / u32::MAX
+        // So we want u32 values V where fraction_min <= V / u32::MAX <= fraction_max
+        // Which means: fraction_min * u32::MAX <= V <= fraction_max * u32::MAX
+        
+        let min_u32_exact = fraction_min * u32::MAX as f64;
+        let max_u32_exact = fraction_max * u32::MAX as f64;
+        
+        // Convert to actual u32 bounds
+        let min_u32 = min_u32_exact.ceil() as u32;
+        let max_u32 = max_u32_exact.floor() as u32;
+        
+        // Handle edge case where the range is too narrow
+        if min_u32 > max_u32 {
+            let mid_u32 = ((min_u32_exact + max_u32_exact) * 0.5) as u32;
+            (mid_u32, mid_u32)
+        } else {
+            (min_u32, max_u32)
+        }
     }
     
     /// Check if a given u32 value is consistent with this data point
@@ -54,12 +78,6 @@ impl DataPoint {
         value >= min_u32 && value <= max_u32
     }
     
-    /// Calculate the generated value for verification
-    pub fn calculate_generated_value(&self, u32_value: u32) -> f64 {
-        let fraction = u32_value as f64 / u32::MAX as f64;
-        let scaled = fraction * (self.range_max - self.range_min) + self.range_min;
-        (scaled * 100.0).round() / 100.0
-    }
 }
 
 pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {

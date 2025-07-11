@@ -29,31 +29,30 @@ pub fn find_original_state(data_points: &[DataPoint]) -> Result<Vec<StateCandida
         
         if is_valid_seed(seed, data_points) {
             let state = SggPcg::new(seed as u64).state();
-            let confidence = calculate_confidence(seed, data_points);
-            let error_metrics = calculate_error_metrics(seed, data_points);
             
             candidates.push(StateCandidate {
                 seed,
                 state,
-                confidence,
-                error_metrics,
             });
             
-            println!("Found candidate: seed {}, confidence: {:.4}", seed, confidence);
-            
-            // If we find a perfect match (confidence ~1.0), we can stop early
-            if confidence > 0.999 {
-                println!("Found high-confidence match, stopping search early");
-                break;
-            }
+            println!("Found exact match: seed {}", seed);
         }
     }
     
     let elapsed = start_time.elapsed();
     println!("Search completed in {:.2}s, tested {} seeds", elapsed.as_secs_f64(), tested_count);
     
-    // Sort candidates by confidence (highest first)
-    candidates.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+    // Report results
+    match candidates.len() {
+        0 => println!("No valid seeds found that match all data points exactly."),
+        1 => println!("Found unique seed: {}", candidates[0].seed),
+        n => {
+            println!("WARNING: Found {} matching seeds - you need more data points to uniquely identify the seed:", n);
+            for candidate in &candidates {
+                println!("  Seed: {}", candidate.seed);
+            }
+        }
+    }
     
     Ok(candidates)
 }
@@ -78,46 +77,6 @@ fn is_valid_seed(seed: i32, data_points: &[DataPoint]) -> bool {
     true
 }
 
-fn calculate_confidence(seed: i32, data_points: &[DataPoint]) -> f64 {
-    let mut total_error = 0.0;
-    let rng = SggPcg::new(seed as u64);
-    
-    for data_point in data_points {
-        let mut test_rng = rng.clone();
-        test_rng.advance(data_point.offset);
-        
-        let generated_u32 = test_rng.next_u32();
-        let generated_value = data_point.calculate_generated_value(generated_u32);
-        
-        let error = (generated_value - data_point.observed).abs();
-        total_error += error;
-    }
-    
-    // Convert error to confidence (lower error = higher confidence)
-    // Maximum possible error per data point is about 0.005 (rounding precision)
-    let max_possible_error = data_points.len() as f64 * 0.005;
-    let confidence = 1.0 - (total_error / max_possible_error).min(1.0);
-    
-    confidence.max(0.0)
-}
-
-fn calculate_error_metrics(seed: i32, data_points: &[DataPoint]) -> Vec<f64> {
-    let mut errors = Vec::new();
-    let rng = SggPcg::new(seed as u64);
-    
-    for data_point in data_points {
-        let mut test_rng = rng.clone();
-        test_rng.advance(data_point.offset);
-        
-        let generated_u32 = test_rng.next_u32();
-        let generated_value = data_point.calculate_generated_value(generated_u32);
-        
-        let error = (generated_value - data_point.observed).abs();
-        errors.push(error);
-    }
-    
-    errors
-}
 
 
 #[cfg(test)]
@@ -126,7 +85,7 @@ mod tests {
     use crate::reverse_rng::data_point::DataPoint;
     
     #[test]
-    fn test_known_seed_recovery() {
+    fn test_known_seed_validation() {
         // Create a known RNG state and generate some test data
         let known_seed = 12345i32;
         let _rng = SggPcg::new(known_seed as u64);
@@ -155,11 +114,10 @@ mod tests {
             });
         }
         
-        // Test validation
+        // Test that our validation works correctly - the known seed should validate
         assert!(is_valid_seed(known_seed, &data_points));
         
-        // Test confidence calculation
-        let confidence = calculate_confidence(known_seed, &data_points);
-        assert!(confidence > 0.99, "Confidence should be very high for exact match");
+        // Test that a different seed should not validate (with high probability)
+        assert!(!is_valid_seed(known_seed + 1, &data_points));
     }
 }
