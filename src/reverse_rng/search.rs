@@ -6,10 +6,28 @@ use std::time::Instant;
 
 pub fn find_original_state(data_points: &[DataPoint]) -> Result<Vec<StateCandidate>, Error> {
     println!("Starting brute force search across 2^32 possible seeds...");
-    let start_time = Instant::now();
     
+    // Sort data points by constraint strength (most restrictive first)
+    let mut sorted_data_points = data_points.to_vec();
+    sorted_data_points.sort_by(|a, b| {
+        let constraint_a = constraint_strength(a);
+        let constraint_b = constraint_strength(b);
+        constraint_b.partial_cmp(&constraint_a).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    
+    println!("Constraint analysis:");
+    for (i, dp) in sorted_data_points.iter().enumerate() {
+        let (min_u32, max_u32) = dp.valid_u32_range();
+        let range_size = (max_u32 as u64).saturating_sub(min_u32 as u64) + 1;
+        let selectivity = range_size as f64 / (u32::MAX as f64 + 1.0);
+        println!("  {}: {} offset={}, range_size={}, selectivity={:.6}", 
+                 i+1, dp.name, dp.offset, range_size, selectivity);
+    }
+    
+    let start_time = Instant::now();
     let mut candidates = Vec::new();
     let mut tested_count = 0u64;
+    let mut filtered_count = 0u64;
     let total_seeds = 1u64 << 32; // 2^32
     
     // Test all possible i32 seed values
@@ -22,12 +40,19 @@ pub fn find_original_state(data_points: &[DataPoint]) -> Result<Vec<StateCandida
             let progress = tested_count as f64 / total_seeds as f64 * 100.0;
             let estimated_total = elapsed / (tested_count as f64 / total_seeds as f64);
             let remaining = estimated_total - elapsed;
+            let filter_rate = filtered_count as f64 / tested_count as f64 * 100.0;
             
-            println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s", 
-                     progress, tested_count, total_seeds, elapsed, remaining);
+            println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s, Filtered: {:.1}%", 
+                     progress, tested_count, total_seeds, elapsed, remaining, filter_rate);
         }
         
-        if is_valid_seed(seed, data_points) {
+        // Pre-filter using constraint analysis
+        if !quick_constraint_check(seed, &sorted_data_points) {
+            filtered_count += 1;
+            continue;
+        }
+        
+        if is_valid_seed(seed, &sorted_data_points) {
             let state = SggPcg::new(seed as u64).state();
             
             candidates.push(StateCandidate {
@@ -40,7 +65,9 @@ pub fn find_original_state(data_points: &[DataPoint]) -> Result<Vec<StateCandida
     }
     
     let elapsed = start_time.elapsed();
-    println!("Search completed in {:.2}s, tested {} seeds", elapsed.as_secs_f64(), tested_count);
+    let filter_rate = if tested_count > 0 { filtered_count as f64 / tested_count as f64 * 100.0 } else { 0.0 };
+    println!("Search completed in {:.2}s, tested {} seeds, filtered {:.1}% early", 
+             elapsed.as_secs_f64(), tested_count, filter_rate);
     
     // Report results
     match candidates.len() {
@@ -57,9 +84,38 @@ pub fn find_original_state(data_points: &[DataPoint]) -> Result<Vec<StateCandida
     Ok(candidates)
 }
 
+fn constraint_strength(data_point: &DataPoint) -> f64 {
+    let (min_u32, max_u32) = data_point.valid_u32_range();
+    let range_size = (max_u32 as u64).saturating_sub(min_u32 as u64) + 1;
+    // Return selectivity (smaller = more constraining)
+    range_size as f64 / (u32::MAX as f64 + 1.0)
+}
+
+
+fn quick_constraint_check(seed: i32, data_points: &[DataPoint]) -> bool {
+    // Check the top 2-3 most constraining data points for quick elimination
+    let num_to_check = data_points.len().min(3);
+    let rng = SggPcg::new(seed as u64);
+    
+    for i in 0..num_to_check {
+        let data_point = &data_points[i];
+        let mut test_rng = rng.clone();
+        if data_point.offset > 0 {
+            test_rng.advance(data_point.offset - 1);
+        }
+        let generated_u32 = test_rng.next_u32();
+        if !data_point.is_consistent_with(generated_u32) {
+            return false;
+        }
+    }
+    true
+}
+
 fn is_valid_seed(seed: i32, data_points: &[DataPoint]) -> bool {
     let rng = SggPcg::new(seed as u64);
     
+    // Process data points in order of constraint strength (most restrictive first)
+    // This allows early termination when a constraint fails
     for data_point in data_points {
         // Advance RNG to one position before the offset, since the offset 
         // represents the position where the value was generated (not where to advance to)
@@ -71,7 +127,7 @@ fn is_valid_seed(seed: i32, data_points: &[DataPoint]) -> bool {
         // Generate the value
         let generated_u32 = test_rng.next_u32();
         
-        // Check if it's consistent with the observed value
+        // Check if it's consistent with the observed value - early termination on first failure
         if !data_point.is_consistent_with(generated_u32) {
             return false;
         }
