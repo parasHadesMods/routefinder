@@ -130,6 +130,4 @@ To track optimization performance:
 ```bash
 # Run benchmark using real_ursa_data_fixed.txt (expected seed: 1152303697)
 ./bench_reverse_rng.sh
-
-# Expected baseline: ~60 seconds with release build
 ```
