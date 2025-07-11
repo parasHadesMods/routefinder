@@ -1,0 +1,9 @@
+# Format: name,offset,min,max,observed
+nassault,14,1.3,1.5,1.35
+nambush,18,1.6,1.8,1.78
+nfavor,20,0.11,0.2,0.12
+nlunge,22,1.4,1.6,1.42
+nsoul,24,0.3,0.4,0.39
+nstrike,26,1.3,1.4,1.4
+neclipse,28,1.5,1.8,1.72
+# Expected seed to find: 1152303697
