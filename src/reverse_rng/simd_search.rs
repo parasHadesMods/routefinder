@@ -187,7 +187,7 @@ unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &
         
         // Advance states if needed
         if data_point.offset > 0 {
-            states = advance_pcg_states_simd(states, data_point.offset - 1, multiplier, increment);
+            states = advance_pcg_states_simd(states, data_point.offset - 1);
         }
         
         // Generate next values using PCG
@@ -219,29 +219,31 @@ unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &
 
 #[cfg(feature = "simd")]
 #[target_feature(enable = "avx2")]
-unsafe fn advance_pcg_states_simd(states: __m256i, delta: u64, multiplier: __m256i, increment: __m256i) -> __m256i {
-    if delta == 0 {
-        return states;
-    }
-    
-    // For small deltas, just iterate (more efficient than jump-ahead calculation)
-    if delta < 100 {
-        let mut current_states = states;
-        for _ in 0..delta {
-            current_states = _mm256_add_epi64(mul_epi64_avx2(current_states, multiplier), increment);
+unsafe fn advance_pcg_states_simd(states: __m256i, delta: u64) -> __m256i {
+    // Initialize accumulator vectors
+    let mut acc_mult = _mm256_set1_epi64x(1);
+    let mut acc_plus = _mm256_set1_epi64x(0);
+    let mut cur_mult = _mm256_set1_epi64x(MULTIPLIER as i64);
+    let mut cur_plus = _mm256_set1_epi64x(INCREMENT as i64);
+    let mut mdelta = delta;
+
+    while mdelta > 0 {
+        if (mdelta & 1) != 0 {
+            // acc_mult = acc_mult * cur_mult
+            acc_mult = mul_epi64_avx2(acc_mult, cur_mult);
+            // acc_plus = acc_plus * cur_mult + cur_plus
+            acc_plus = _mm256_add_epi64(mul_epi64_avx2(acc_plus, cur_mult), cur_plus);
         }
-        return current_states;
+        // cur_plus = (cur_mult + 1) * cur_plus
+        let cur_mult_plus_one = _mm256_add_epi64(cur_mult, _mm256_set1_epi64x(1));
+        cur_plus = mul_epi64_avx2(cur_mult_plus_one, cur_plus);
+        // cur_mult = cur_mult * cur_mult
+        cur_mult = mul_epi64_avx2(cur_mult, cur_mult);
+        mdelta /= 2;
     }
     
-    // For larger deltas, fall back to scalar jump-ahead
-    let mut states_array = [0u64; CHUNK_SIZE];
-    _mm256_storeu_si256(states_array.as_mut_ptr() as *mut __m256i, states);
-    
-    for state in &mut states_array {
-        *state = advance_pcg_state(*state, delta);
-    }
-    
-    _mm256_loadu_si256(states_array.as_ptr() as *const __m256i)
+    // Final result: acc_mult * states + acc_plus
+    _mm256_add_epi64(mul_epi64_avx2(acc_mult, states), acc_plus)
 }
 
 // Helper functions for PCG operations
