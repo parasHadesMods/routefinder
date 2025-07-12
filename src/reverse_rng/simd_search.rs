@@ -197,10 +197,8 @@ unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &
         // Apply PCG output function and check consistency using SIMD
         let generated_values = pcg_output_function_simd(old_states);
         for i in 0..CHUNK_SIZE {
-            if results[i] {
-                if !data_point.is_consistent_with(generated_values[i]) {
-                    results[i] = false;
-                }
+            if !data_point.is_consistent_with(generated_values[i]) {
+                results[i] = false;
             }
         }
         
