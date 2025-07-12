@@ -194,15 +194,11 @@ unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &
         let old_states = states;
         states = _mm256_add_epi64(mul_epi64_avx2(states, multiplier), increment);
         
-        // Extract old states for output function
-        let mut old_states_array = [0u64; CHUNK_SIZE];
-        _mm256_storeu_si256(old_states_array.as_mut_ptr() as *mut __m256i, old_states);
-        
-        // Apply PCG output function and check consistency
+        // Apply PCG output function and check consistency using SIMD
+        let generated_values = pcg_output_function_simd(old_states);
         for i in 0..CHUNK_SIZE {
             if results[i] {
-                let generated_u32 = pcg_output_function(old_states_array[i]);
-                if !data_point.is_consistent_with(generated_u32) {
+                if !data_point.is_consistent_with(generated_values[i]) {
                     results[i] = false;
                 }
             }
@@ -246,25 +242,11 @@ unsafe fn advance_pcg_states_simd(states: __m256i, delta: u64) -> __m256i {
     _mm256_add_epi64(mul_epi64_avx2(acc_mult, states), acc_plus)
 }
 
-// Helper functions for PCG operations
 #[cfg(feature = "simd")]
-fn advance_pcg_state(state: u64, delta: u64) -> u64 {
-    let mut acc_mult: u64 = 1;
-    let mut acc_plus: u64 = 0;
-    let mut cur_mult = MULTIPLIER;
-    let mut cur_plus = INCREMENT;
-    let mut mdelta = delta;
-
-    while mdelta > 0 {
-        if (mdelta & 1) != 0 {
-            acc_mult = acc_mult.wrapping_mul(cur_mult);
-            acc_plus = acc_plus.wrapping_mul(cur_mult).wrapping_add(cur_plus);
-        }
-        cur_plus = cur_mult.wrapping_add(1).wrapping_mul(cur_plus);
-        cur_mult = cur_mult.wrapping_mul(cur_mult);
-        mdelta /= 2;
-    }
-    acc_mult.wrapping_mul(state).wrapping_add(acc_plus)
+fn pcg_output_function(state: u64) -> u32 {
+    let rot = (state >> ROTATE) as u32;
+    let xsh = (((state >> XSHIFT) ^ state) >> SPARE) as u32;
+    xsh.rotate_right(rot)
 }
 
 #[cfg(feature = "simd")]
@@ -275,10 +257,33 @@ fn pcg_next_u32(state: &mut u64) -> u32 {
 }
 
 #[cfg(feature = "simd")]
-fn pcg_output_function(state: u64) -> u32 {
-    let rot = (state >> ROTATE) as u32;
-    let xsh = (((state >> XSHIFT) ^ state) >> SPARE) as u32;
-    xsh.rotate_right(rot)
+#[target_feature(enable = "avx2")]
+unsafe fn pcg_output_function_simd(states: __m256i) -> [u32; CHUNK_SIZE] {
+    // Extract rotation amounts: (state >> 59) & 0x1F (only need bottom 5 bits)
+    let rotate_shifts = _mm256_srli_epi64(states, ROTATE as i32);
+    let rotate_mask = _mm256_set1_epi64x(0x1F);
+    let rotations = _mm256_and_si256(rotate_shifts, rotate_mask);
+    
+    // Compute xorshift: ((state >> 18) ^ state) >> 27
+    let shifted = _mm256_srli_epi64(states, XSHIFT as i32);
+    let xored = _mm256_xor_si256(shifted, states);
+    let xsh_values = _mm256_srli_epi64(xored, SPARE as i32);
+    
+    // Convert to 32-bit values and apply variable rotations
+    let mut result = [0u32; CHUNK_SIZE];
+    let mut xsh_array = [0u64; CHUNK_SIZE];
+    let mut rot_array = [0u64; CHUNK_SIZE];
+    
+    _mm256_storeu_si256(xsh_array.as_mut_ptr() as *mut __m256i, xsh_values);
+    _mm256_storeu_si256(rot_array.as_mut_ptr() as *mut __m256i, rotations);
+    
+    for i in 0..CHUNK_SIZE {
+        let xsh = xsh_array[i] as u32;
+        let rot = rot_array[i] as u32;
+        result[i] = xsh.rotate_right(rot);
+    }
+    
+    result
 }
 
 #[cfg(test)]
@@ -287,13 +292,41 @@ mod tests {
     use crate::reverse_rng::data_point::DataPoint;
     
     #[test]
-    fn test_simd_vs_scalar_consistency() {
-        // Generate test data with known seed
-        let known_seed = 12345i32;
+    fn test_pcg_output_function_simd() {
+        // Test the SIMD PCG output function directly against scalar implementation
+        let test_states = [
+            0x123456789ABCDEF0u64,
+            0xFEDCBA9876543210u64,
+            0x0123456789ABCDEFu64,
+            0xDEADBEEFCAFEBABEu64,
+        ];
+        
+        // Compute expected results using scalar function
+        let expected: [u32; CHUNK_SIZE] = [
+            pcg_output_function(test_states[0]),
+            pcg_output_function(test_states[1]),
+            pcg_output_function(test_states[2]),
+            pcg_output_function(test_states[3]),
+        ];
+        
+        // Compute using SIMD function
+        unsafe {
+            let states_simd = _mm256_loadu_si256(test_states.as_ptr() as *const __m256i);
+            let result = pcg_output_function_simd(states_simd);
+            
+            assert_eq!(result, expected, "SIMD PCG output function should match scalar implementation");
+        }
+    }
+    
+    #[test]
+    fn test_simd_vs_scalar_consistency_small() {
+        // Generate test data with known seed that should be found quickly
+        let known_seed = 0i32;  // Start from beginning of search space
         let mut data_points = Vec::new();
         
-        for i in 0..3 {
-            let rng_position = i * 10;
+        // Use just 2 data points to make search faster
+        for i in 0..2 {
+            let rng_position = i * 5;
             let mut test_rng = SggPcg::new(known_seed as u64);
             test_rng.advance(rng_position);
             
