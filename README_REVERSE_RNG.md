@@ -26,7 +26,7 @@ cargo +nightly run --release --features simd -- reverse-rng data_points.txt
 # Generate test data from a known seed for verification
 cargo run --release -- reverse-rng real_ursa_data_fixed.txt
 
-# Benchmark SIMD performance
+# Benchmark SIMD performa
 ./benchmark_simd.sh
 ```
 
