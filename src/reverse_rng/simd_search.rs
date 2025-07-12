@@ -7,7 +7,7 @@ use std::time::Instant;
 #[cfg(all(feature = "simd", target_arch = "x86_64"))]
 use std::arch::x86_64::*;
 
-const CHUNK_SIZE: usize = 8; // Process 8 seeds at once with AVX2
+const CHUNK_SIZE: usize = 4; // Process 4 u64 states at once with AVX2
 
 // SIMD constants for PCG
 const MULTIPLIER: u64 = 0x5851f42d4c957f2d;
@@ -46,7 +46,7 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
     let mut filtered_count = 0u64;
     let total_seeds = 1u64 << 32;
     
-    // Process seeds in chunks of 8 (AVX2 can handle 8x32-bit integers)
+    // Process seeds in chunks of 4 (AVX2 can handle 4x64-bit integers)
     let mut seed_base: i64 = i32::MIN as i64;
     
     while seed_base < i32::MAX as i64 {
@@ -64,26 +64,19 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
                      progress, tested_count, total_seeds, elapsed, remaining, filter_rate);
         }
         
-        // Load 8 consecutive seeds into AVX2 register
+        // Load 4 consecutive seeds
         let seeds = [
             seed_base as i32,
             seed_base as i32 + 1,
             seed_base as i32 + 2,
             seed_base as i32 + 3,
-            seed_base as i32 + 4,
-            seed_base as i32 + 5,
-            seed_base as i32 + 6,
-            seed_base as i32 + 7,
         ];
         
-        // Convert to u64 and compute initial PCG states
-        let mut states = [0u64; CHUNK_SIZE];
-        for i in 0..CHUNK_SIZE {
-            states[i] = (seeds[i] as u64).wrapping_mul(MULTIPLIER).wrapping_sub(INITIAL_OFFSET);
-        }
+        // Convert to u64 and compute initial PCG states using SIMD
+        let states = compute_initial_states_simd(&seeds);
         
-        // Use SIMD to validate all 8 seeds at once
-        let valid_seeds = validate_seeds_simd(&seeds, &states, &sorted_data_points);
+        // Use SIMD to validate all 4 seeds at once
+        let valid_seeds = validate_seeds_simd_avx2(&seeds, &states, data_points);
         
         for i in 0..CHUNK_SIZE {
             if !valid_seeds[i] {
@@ -134,67 +127,121 @@ unsafe fn find_original_state_sse2(data_points: &[DataPoint]) -> Result<Vec<Stat
 }
 
 #[cfg(feature = "simd")]
-fn validate_seeds_simd(_seeds: &[i32; CHUNK_SIZE], initial_states: &[u64; CHUNK_SIZE], data_points: &[DataPoint]) -> [bool; CHUNK_SIZE] {
+#[target_feature(enable = "avx2")]
+unsafe fn mul_epi64_avx2(a: __m256i, b: __m256i) -> __m256i {
+    // 64-bit multiplication using 32-bit operations
+    // Split into 32-bit components: a = a_lo + (a_hi << 32), b = b_lo + (b_hi << 32)
+    // Result = a_lo * b_lo + (a_lo * b_hi + a_hi * b_lo) << 32
+    
+    // Extract low and high 32-bit parts
+    let a_lo = _mm256_and_si256(a, _mm256_set1_epi64x(0xFFFFFFFF));
+    let a_hi = _mm256_srli_epi64(a, 32);
+    let b_lo = _mm256_and_si256(b, _mm256_set1_epi64x(0xFFFFFFFF));
+    let b_hi = _mm256_srli_epi64(b, 32);
+    
+    // Compute partial products
+    let lo_lo = _mm256_mul_epu32(a_lo, b_lo);
+    let lo_hi = _mm256_mul_epu32(a_lo, b_hi);
+    let hi_lo = _mm256_mul_epu32(a_hi, b_lo);
+    
+    // Combine: lo_lo + (lo_hi + hi_lo) << 32
+    let mid = _mm256_add_epi64(lo_hi, hi_lo);
+    let mid_shifted = _mm256_slli_epi64(mid, 32);
+    _mm256_add_epi64(lo_lo, mid_shifted)
+}
+
+#[cfg(feature = "simd")]
+#[target_feature(enable = "avx2")]
+unsafe fn compute_initial_states_simd(seeds: &[i32; CHUNK_SIZE]) -> [u64; CHUNK_SIZE] {
+    // Load seeds into AVX2 register (4x i32 -> 4x u64)
+    let seeds_128 = _mm_loadu_si128(seeds.as_ptr() as *const __m128i);
+    let seeds_256 = _mm256_cvtepi32_epi64(seeds_128);
+    
+    // Load constants
+    let multiplier = _mm256_set1_epi64x(MULTIPLIER as i64);
+    let initial_offset = _mm256_set1_epi64x(INITIAL_OFFSET as i64);
+    
+    // Compute seeds * MULTIPLIER - INITIAL_OFFSET using custom 64-bit multiply
+    let product = mul_epi64_avx2(seeds_256, multiplier);
+    let states = _mm256_sub_epi64(product, initial_offset);
+    
+    // Store result
+    let mut result = [0u64; CHUNK_SIZE];
+    _mm256_storeu_si256(result.as_mut_ptr() as *mut __m256i, states);
+    result
+}
+
+#[cfg(feature = "simd")]
+#[target_feature(enable = "avx2")]
+unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &[u64; CHUNK_SIZE], data_points: &[DataPoint]) -> [bool; CHUNK_SIZE] {
     let mut results = [true; CHUNK_SIZE];
     
-    // Early termination optimization: use most constraining data point first
-    if let Some(first_data_point) = data_points.first() {
-        let mut states = *initial_states;
+    // Load constants for SIMD operations
+    let multiplier = _mm256_set1_epi64x(MULTIPLIER as i64);
+    let increment = _mm256_set1_epi64x(INCREMENT as i64);
+    
+    // Process each data point
+    for data_point in data_points {
+        // Load initial states
+        let mut states = _mm256_loadu_si256(initial_states.as_ptr() as *const __m256i);
         
-        // Advance all states for the first (most constraining) data point
-        if first_data_point.offset > 0 {
-            for state in &mut states {
-                *state = advance_pcg_state(*state, first_data_point.offset - 1);
-            }
+        // Advance states if needed
+        if data_point.offset > 0 {
+            states = advance_pcg_states_simd(states, data_point.offset - 1, multiplier, increment);
         }
         
-        // Quick elimination using first data point - process all 8 in tight loop
+        // Generate next values using PCG
+        let old_states = states;
+        states = _mm256_add_epi64(mul_epi64_avx2(states, multiplier), increment);
+        
+        // Extract old states for output function
+        let mut old_states_array = [0u64; CHUNK_SIZE];
+        _mm256_storeu_si256(old_states_array.as_mut_ptr() as *mut __m256i, old_states);
+        
+        // Apply PCG output function and check consistency
         for i in 0..CHUNK_SIZE {
-            let old_state = states[i];
-            states[i] = states[i].wrapping_mul(MULTIPLIER).wrapping_add(INCREMENT);
-            let generated_u32 = pcg_output_function(old_state);
-            
-            if !first_data_point.is_consistent_with(generated_u32) {
-                results[i] = false;
+            if results[i] {
+                let generated_u32 = pcg_output_function(old_states_array[i]);
+                if !data_point.is_consistent_with(generated_u32) {
+                    results[i] = false;
+                }
             }
         }
         
-        // Only process remaining data points for seeds that passed first check
-        for data_point in &data_points[1..] {
-            let mut remaining_valid = false;
-            for i in 0..CHUNK_SIZE {
-                if results[i] {
-                    remaining_valid = true;
-                    break;
-                }
-            }
-            
-            if !remaining_valid {
-                break; // All seeds failed, no need to continue
-            }
-            
-            let mut states = *initial_states;
-            if data_point.offset > 0 {
-                for state in &mut states {
-                    *state = advance_pcg_state(*state, data_point.offset - 1);
-                }
-            }
-            
-            for i in 0..CHUNK_SIZE {
-                if results[i] {
-                    let old_state = states[i];
-                    states[i] = states[i].wrapping_mul(MULTIPLIER).wrapping_add(INCREMENT);
-                    let generated_u32 = pcg_output_function(old_state);
-                    
-                    if !data_point.is_consistent_with(generated_u32) {
-                        results[i] = false;
-                    }
-                }
-            }
+        // Early termination if all seeds failed
+        if !results.iter().any(|&x| x) {
+            break;
         }
     }
     
     results
+}
+
+#[cfg(feature = "simd")]
+#[target_feature(enable = "avx2")]
+unsafe fn advance_pcg_states_simd(states: __m256i, delta: u64, multiplier: __m256i, increment: __m256i) -> __m256i {
+    if delta == 0 {
+        return states;
+    }
+    
+    // For small deltas, just iterate (more efficient than jump-ahead calculation)
+    if delta < 100 {
+        let mut current_states = states;
+        for _ in 0..delta {
+            current_states = _mm256_add_epi64(mul_epi64_avx2(current_states, multiplier), increment);
+        }
+        return current_states;
+    }
+    
+    // For larger deltas, fall back to scalar jump-ahead
+    let mut states_array = [0u64; CHUNK_SIZE];
+    _mm256_storeu_si256(states_array.as_mut_ptr() as *mut __m256i, states);
+    
+    for state in &mut states_array {
+        *state = advance_pcg_state(*state, delta);
+    }
+    
+    _mm256_loadu_si256(states_array.as_ptr() as *const __m256i)
 }
 
 // Helper functions for PCG operations
@@ -230,31 +277,6 @@ fn pcg_output_function(state: u64) -> u32 {
     let rot = (state >> ROTATE) as u32;
     let xsh = (((state >> XSHIFT) ^ state) >> SPARE) as u32;
     xsh.rotate_right(rot)
-}
-
-fn constraint_strength(data_point: &DataPoint) -> f64 {
-    let (min_u32, max_u32) = data_point.valid_u32_range();
-    let range_size = (max_u32 as u64).saturating_sub(min_u32 as u64) + 1;
-    range_size as f64 / (u32::MAX as f64 + 1.0)
-}
-
-fn is_valid_seed(seed: i32, data_points: &[DataPoint]) -> bool {
-    let rng = SggPcg::new(seed as u64);
-    
-    for data_point in data_points {
-        let mut test_rng = rng.clone();
-        if data_point.offset > 0 {
-            test_rng.advance(data_point.offset - 1);
-        }
-        
-        let generated_u32 = test_rng.next_u32();
-        
-        if !data_point.is_consistent_with(generated_u32) {
-            return false;
-        }
-    }
-    
-    true
 }
 
 #[cfg(test)]
