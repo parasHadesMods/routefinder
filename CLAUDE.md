@@ -118,13 +118,6 @@ chamber3,10,-50.0,50.0,42.49
 - **Recommended Data Points**: 6-7 for unique identification
 - **Early Termination**: Stops when high-confidence match found
 
-### Test Data Generation
-Generate known test data for validation:
-```bash
-cargo run --bin generate_test_data > known_seed_test.txt
-cargo run --release -- reverse-rng known_seed_test.txt
-```
-
 ### Benchmarking
 To track optimization performance:
 ```bash
