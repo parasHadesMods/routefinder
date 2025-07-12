@@ -255,7 +255,14 @@ fn handle_reverse_rng_command(input_file: PathBuf, method: String, timeout_ms: u
     let candidates = match method.as_str() {
         "brute-force" => {
             println!("Using brute force method...");
-            reverse_rng::search::find_original_state(&data_points)?
+            #[cfg(feature = "simd")]
+            {
+                reverse_rng::simd_search::find_original_state_simd(&data_points)?
+            }
+            #[cfg(not(feature = "simd"))]
+            {
+                reverse_rng::search::find_original_state(&data_points)?
+            }
         }
         "smt" => {
             println!("Using SMT solver method...");

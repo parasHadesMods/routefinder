@@ -26,6 +26,7 @@ z3 = { version = "0.12", features = ["static-link-z3"], optional = true }
 [features]
 default = []
 smt = ["z3"]
+simd = []
 
 [dev-dependencies]
 criterion = "0.3"
