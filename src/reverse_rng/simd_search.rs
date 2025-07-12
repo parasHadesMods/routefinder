@@ -1,8 +1,10 @@
 use crate::error::Error;
 use crate::reverse_rng::data_point::{DataPoint, StateCandidate};
 use crate::rng::SggPcg;
-use rand::RngCore;
 use std::time::Instant;
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 #[cfg(all(feature = "simd", target_arch = "x86_64"))]
 use std::arch::x86_64::*;
@@ -38,68 +40,107 @@ pub fn find_original_state_simd(data_points: &[DataPoint]) -> Result<Vec<StateCa
 #[cfg(feature = "simd")]
 #[target_feature(enable = "avx2")]
 unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<StateCandidate>, Error> {
-    println!("Starting AVX2 SIMD brute force search across 2^32 possible seeds...");
+    println!("Starting parallel AVX2 SIMD brute force search across 2^32 possible seeds...");
     
     let start_time = Instant::now();
-    let mut candidates = Vec::new();
-    let mut tested_count = 0u64;
-    let mut filtered_count = 0u64;
     let total_seeds = 1u64 << 32;
     
-    // Process seeds in chunks of 4 (AVX2 can handle 4x64-bit integers)
-    let mut seed_base: i64 = i32::MIN as i64;
+    // Shared atomic counters for progress tracking
+    let tested_count = Arc::new(AtomicU64::new(0));
+    let filtered_count = Arc::new(AtomicU64::new(0));
     
-    while seed_base < i32::MAX as i64 {
-        tested_count += CHUNK_SIZE as u64;
-        
-        // Progress reporting
-        if tested_count % (100_000_000) == 0 {
-            let elapsed = start_time.elapsed().as_secs_f64();
-            let progress = tested_count as f64 / total_seeds as f64 * 100.0;
-            let estimated_total = elapsed / (tested_count as f64 / total_seeds as f64);
-            let remaining = estimated_total - elapsed;
-            let filter_rate = filtered_count as f64 / tested_count as f64 * 100.0;
+    // Determine chunk size for parallel processing
+    // Use larger chunks to reduce overhead while maintaining good load balancing
+    let parallel_chunk_size = 1_000_000u64; // Process 1M seeds per parallel chunk
+    let num_chunks = (total_seeds + parallel_chunk_size - 1) / parallel_chunk_size;
+    
+    println!("Using {} parallel chunks of {} seeds each", num_chunks, parallel_chunk_size);
+    
+    // Create parallel iterator over seed ranges
+    let candidates: Vec<StateCandidate> = (0..num_chunks)
+        .into_par_iter()
+        .flat_map(|chunk_id| {
+            let start_seed = chunk_id * parallel_chunk_size;
+            let end_seed = std::cmp::min((chunk_id + 1) * parallel_chunk_size, total_seeds);
             
-            println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s, Filtered: {:.1}%", 
-                     progress, tested_count, total_seeds, elapsed, remaining, filter_rate);
-        }
-        
-        // Load 4 consecutive seeds
-        let seeds = [
-            seed_base as i32,
-            seed_base as i32 + 1,
-            seed_base as i32 + 2,
-            seed_base as i32 + 3,
-        ];
-        
-        // Convert to u64 and compute initial PCG states using SIMD
-        let states = compute_initial_states_simd(&seeds);
-        
-        // Use SIMD to validate all 4 seeds at once
-        let valid_seeds = validate_seeds_simd_avx2(&seeds, &states, data_points);
-        
-        for i in 0..CHUNK_SIZE {
-            if !valid_seeds[i] {
-                filtered_count += 1;
-            } else {
-                let state = SggPcg::new(seeds[i] as u64).state();
+            let mut local_candidates = Vec::new();
+            let mut local_tested = 0u64;
+            let mut local_filtered = 0u64;
+            
+            // Process this chunk with SIMD
+            let mut seed_base = (start_seed as i64) + (i32::MIN as i64);
+            let chunk_end = (end_seed as i64) + (i32::MIN as i64);
+            
+            while seed_base < chunk_end {
+                local_tested += CHUNK_SIZE as u64;
                 
-                candidates.push(StateCandidate {
-                    seed: seeds[i],
-                    state,
-                });
+                // Load 4 consecutive seeds
+                let seeds = [
+                    seed_base as i32,
+                    seed_base as i32 + 1,
+                    seed_base as i32 + 2,
+                    seed_base as i32 + 3,
+                ];
                 
-                println!("Found exact match: seed {}", seeds[i]);
+                // Convert to u64 and compute initial PCG states using SIMD
+                let states = compute_initial_states_simd(&seeds);
+                
+                // Use SIMD to validate all 4 seeds at once
+                let valid_seeds = validate_seeds_simd_avx2(&seeds, &states, data_points);
+                
+                for i in 0..CHUNK_SIZE {
+                    if !valid_seeds[i] {
+                        local_filtered += 1;
+                    } else {
+                        let state = SggPcg::new(seeds[i] as u64).state();
+                        
+                        local_candidates.push(StateCandidate {
+                            seed: seeds[i],
+                            state,
+                        });
+                        
+                        println!("Found exact match: seed {}", seeds[i]);
+                    }
+                }
+                
+                seed_base += CHUNK_SIZE as i64;
+                
+                // Prevent going beyond the chunk boundary
+                if seed_base >= chunk_end {
+                    break;
+                }
             }
-        }
-        
-        seed_base += CHUNK_SIZE as i64;
-    }
+            
+            // Update global counters
+            tested_count.fetch_add(local_tested, Ordering::Relaxed);
+            filtered_count.fetch_add(local_filtered, Ordering::Relaxed);
+            
+            // Progress reporting from thread 0 only
+            if chunk_id == 0 {
+                let current_tested = tested_count.load(Ordering::Relaxed);
+                if current_tested % (100_000_000) == 0 {
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    let progress = current_tested as f64 / total_seeds as f64 * 100.0;
+                    let estimated_total = elapsed / (current_tested as f64 / total_seeds as f64);
+                    let remaining = estimated_total - elapsed;
+                    let filter_rate = filtered_count.load(Ordering::Relaxed) as f64 / current_tested as f64 * 100.0;
+                    
+                    println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s, Filtered: {:.1}%", 
+                             progress, current_tested, total_seeds, elapsed, remaining, filter_rate);
+                }
+            }
+            
+            local_candidates
+        })
+        .collect();
     
     let elapsed = start_time.elapsed();
-    let filter_rate = if tested_count > 0 { filtered_count as f64 / tested_count as f64 * 100.0 } else { 0.0 };
-    println!("AVX2 search completed in {:.2}s, tested {} seeds, filtered {:.1}% early", 
-             elapsed.as_secs_f64(), tested_count, filter_rate);
+    let final_tested = tested_count.load(Ordering::Relaxed);
+    let final_filtered = filtered_count.load(Ordering::Relaxed);
+    let filter_rate = if final_tested > 0 { final_filtered as f64 / final_tested as f64 * 100.0 } else { 0.0 };
+    
+    println!("Parallel AVX2 search completed in {:.2}s, tested {} seeds, filtered {:.1}% early", 
+             elapsed.as_secs_f64(), final_tested, filter_rate);
     
     // Report results
     match candidates.len() {
@@ -174,7 +215,8 @@ unsafe fn compute_initial_states_simd(seeds: &[i32; CHUNK_SIZE]) -> [u64; CHUNK_
 #[cfg(feature = "simd")]
 #[target_feature(enable = "avx2")]
 unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &[u64; CHUNK_SIZE], data_points: &[DataPoint]) -> [bool; CHUNK_SIZE] {
-    let mut results = [true; CHUNK_SIZE];
+    // Use i64 format where non-zero represents true, 0 represents false
+    let mut results = [1i64; CHUNK_SIZE]; // Start with all true (non-zero)
     
     // Load constants for SIMD operations
     let multiplier = _mm256_set1_epi64x(MULTIPLIER as i64);
@@ -196,19 +238,22 @@ unsafe fn validate_seeds_simd_avx2(_seeds: &[i32; CHUNK_SIZE], initial_states: &
         
         // Apply PCG output function and check consistency using SIMD
         let generated_values = pcg_output_function_simd(old_states);
-        for i in 0..CHUNK_SIZE {
-            if !data_point.is_consistent_with(generated_values[i]) {
-                results[i] = false;
-            }
-        }
+        check_consistency_simd(&generated_values, data_point, &mut results);
         
-        // Early termination if all seeds failed
-        if !results.iter().any(|&x| x) {
-            break;
+        // Early termination if all seeds failed (vectorized check)
+        let results_vector = _mm256_loadu_si256(results.as_ptr() as *const __m256i);
+        if _mm256_testz_si256(results_vector, results_vector) != 0 {
+            break; // All values are zero, terminate early
         }
     }
     
-    results
+    // Convert i64 results back to bool (non-zero means true)
+    [
+        results[0] != 0,
+        results[1] != 0,
+        results[2] != 0,
+        results[3] != 0,
+    ]
 }
 
 #[cfg(feature = "simd")]
@@ -256,6 +301,34 @@ fn pcg_next_u32(state: &mut u64) -> u32 {
 
 #[cfg(feature = "simd")]
 #[target_feature(enable = "avx2")]
+unsafe fn check_consistency_simd(values: &[u32; CHUNK_SIZE], data_point: &DataPoint, results: &mut [i64; CHUNK_SIZE]) {
+    let (min_u32, max_u32) = data_point.valid_u32_range();
+    
+    // Load values into SIMD register
+    let values_128 = _mm_loadu_si128(values.as_ptr() as *const __m128i);
+    let values_256 = _mm256_cvtepu32_epi64(values_128);
+    
+    // Load min/max bounds into SIMD registers
+    let min_bounds = _mm256_set1_epi64x(min_u32 as i64);
+    let max_bounds = _mm256_set1_epi64x(max_u32 as i64);
+    
+    // Perform SIMD comparisons: values >= min_u32 && values <= max_u32
+    let ge_min = _mm256_cmpgt_epi64(values_256, _mm256_sub_epi64(min_bounds, _mm256_set1_epi64x(1)));
+    let le_max = _mm256_cmpgt_epi64(_mm256_add_epi64(max_bounds, _mm256_set1_epi64x(1)), values_256);
+    
+    // Combine conditions with AND
+    let valid = _mm256_and_si256(ge_min, le_max);
+    
+    // Load current results and perform vectorized AND with validity mask
+    let current_results = _mm256_loadu_si256(results.as_ptr() as *const __m256i);
+    let updated_results = _mm256_and_si256(current_results, valid);
+    
+    // Store back the updated results
+    _mm256_storeu_si256(results.as_mut_ptr() as *mut __m256i, updated_results);
+}
+
+#[cfg(feature = "simd")]
+#[target_feature(enable = "avx2")]
 unsafe fn pcg_output_function_simd(states: __m256i) -> [u32; CHUNK_SIZE] {
     // Extract rotation amounts: (state >> 59) & 0x1F (only need bottom 5 bits)
     let rotate_shifts = _mm256_srli_epi64(states, ROTATE as i32);
@@ -289,6 +362,74 @@ mod tests {
     use super::*;
     use crate::reverse_rng::data_point::DataPoint;
     
+    #[test]
+    fn test_early_termination_check() {
+        // Test the vectorized early termination logic
+        unsafe {
+            // Test case 1: All zeros (should terminate)
+            let all_zeros = [0i64; CHUNK_SIZE];
+            let results_vector = _mm256_loadu_si256(all_zeros.as_ptr() as *const __m256i);
+            assert_ne!(_mm256_testz_si256(results_vector, results_vector), 0, "All zeros should trigger termination");
+            
+            // Test case 2: Some non-zeros (should not terminate) 
+            let mixed = [0i64, 1i64, 0i64, 0i64];
+            let results_vector = _mm256_loadu_si256(mixed.as_ptr() as *const __m256i);
+            assert_eq!(_mm256_testz_si256(results_vector, results_vector), 0, "Mixed values should not trigger termination");
+            
+            // Test case 3: All non-zeros (should not terminate)
+            let all_ones = [1i64; CHUNK_SIZE];
+            let results_vector = _mm256_loadu_si256(all_ones.as_ptr() as *const __m256i);
+            assert_eq!(_mm256_testz_si256(results_vector, results_vector), 0, "All non-zeros should not trigger termination");
+        }
+    }
+
+    #[test]
+    fn test_consistency_check_simd() {
+        use crate::reverse_rng::data_point::DataPoint;
+        
+        // Create a test data point
+        let data_point = DataPoint {
+            name: "test".to_string(),
+            offset: 1,
+            range_min: 0.0,
+            range_max: 100.0,
+            observed: 50.0,
+        };
+        
+        let (min_u32, max_u32) = data_point.valid_u32_range();
+        
+        // Test values: some inside range, some outside
+        let test_values = [
+            min_u32,        // Should be valid (at min boundary)
+            max_u32,        // Should be valid (at max boundary)
+            min_u32 - 1,    // Should be invalid (below min)
+            max_u32 + 1,    // Should be invalid (above max)
+        ];
+        
+        // Compute expected results using scalar function
+        let expected = [
+            data_point.is_consistent_with(test_values[0]),
+            data_point.is_consistent_with(test_values[1]),
+            data_point.is_consistent_with(test_values[2]),
+            data_point.is_consistent_with(test_values[3]),
+        ];
+        
+        // Compute using SIMD function
+        unsafe {
+            let mut result = [1i64; CHUNK_SIZE]; // Start with all true (non-zero)
+            check_consistency_simd(&test_values, &data_point, &mut result);
+            
+            // Convert i64 results to bool for comparison
+            let result_bool = [
+                result[0] != 0,
+                result[1] != 0,
+                result[2] != 0,
+                result[3] != 0,
+            ];
+            assert_eq!(result_bool, expected, "SIMD consistency check should match scalar implementation");
+        }
+    }
+
     #[test]
     fn test_pcg_output_function_simd() {
         // Test the SIMD PCG output function directly against scalar implementation
