@@ -51,7 +51,6 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
     
     // Shared atomic counters for progress tracking
     let tested_count = Arc::new(AtomicU64::new(0));
-    let filtered_count = Arc::new(AtomicU64::new(0));
     
     // Determine chunk size for parallel processing
     // Use larger chunks to reduce overhead while maintaining good load balancing
@@ -69,7 +68,6 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
             
             let mut local_candidates = Vec::new();
             let mut local_tested = 0u64;
-            let mut local_filtered = 0u64;
             
             // Process this chunk with SIMD
             let mut seed_base = (start_seed as i64) + (i32::MIN as i64);
@@ -93,9 +91,7 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
                 let valid_seeds = validate_seeds_simd_avx2(&seeds, &states, data_points);
                 
                 for i in 0..CHUNK_SIZE_AVX2 {
-                    if !valid_seeds[i] {
-                        local_filtered += 1;
-                    } else {
+                    if valid_seeds[i] {
                         let state = SggPcg::new(seeds[i] as u64).state();
                         
                         local_candidates.push(StateCandidate {
@@ -103,7 +99,7 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
                             state,
                         });
                         
-                        println!("Found exact match: seed {}", seeds[i]);
+                        println!("Found match: seed {}", seeds[i]);
                     }
                 }
                 
@@ -117,22 +113,6 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
             
             // Update global counters
             tested_count.fetch_add(local_tested, Ordering::Relaxed);
-            filtered_count.fetch_add(local_filtered, Ordering::Relaxed);
-            
-            // Progress reporting from thread 0 only
-            if chunk_id == 0 {
-                let current_tested = tested_count.load(Ordering::Relaxed);
-                if current_tested % (100_000_000) == 0 {
-                    let elapsed = start_time.elapsed().as_secs_f64();
-                    let progress = current_tested as f64 / total_seeds as f64 * 100.0;
-                    let estimated_total = elapsed / (current_tested as f64 / total_seeds as f64);
-                    let remaining = estimated_total - elapsed;
-                    let filter_rate = filtered_count.load(Ordering::Relaxed) as f64 / current_tested as f64 * 100.0;
-                    
-                    println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s, Filtered: {:.1}%", 
-                             progress, current_tested, total_seeds, elapsed, remaining, filter_rate);
-                }
-            }
             
             local_candidates
         })
@@ -140,11 +120,9 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
     
     let elapsed = start_time.elapsed();
     let final_tested = tested_count.load(Ordering::Relaxed);
-    let final_filtered = filtered_count.load(Ordering::Relaxed);
-    let filter_rate = if final_tested > 0 { final_filtered as f64 / final_tested as f64 * 100.0 } else { 0.0 };
-    
-    println!("Parallel AVX2 search completed in {:.2}s, tested {} seeds, filtered {:.1}% early", 
-             elapsed.as_secs_f64(), final_tested, filter_rate);
+
+    println!("Parallel AVX2 search completed in {:.2}s, tested {} seeds", 
+             elapsed.as_secs_f64(), final_tested);
     
     // Report results
     match candidates.len() {
@@ -171,7 +149,6 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
     
     // Shared atomic counters for progress tracking
     let tested_count = Arc::new(AtomicU64::new(0));
-    let filtered_count = Arc::new(AtomicU64::new(0));
     
     // Determine chunk size for parallel processing
     // Use larger chunks to reduce overhead while maintaining good load balancing
@@ -189,7 +166,6 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
             
             let mut local_candidates = Vec::new();
             let mut local_tested = 0u64;
-            let mut local_filtered = 0u64;
             
             // Process this chunk with SIMD
             let mut seed_base = (start_seed as i64) + (i32::MIN as i64);
@@ -217,9 +193,7 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
                 let valid_seeds = validate_seeds_simd_avx512(&seeds, &states, data_points);
                 
                 for i in 0..CHUNK_SIZE_AVX512 {
-                    if !valid_seeds[i] {
-                        local_filtered += 1;
-                    } else {
+                    if valid_seeds[i] {
                         let state = SggPcg::new(seeds[i] as u64).state();
                         
                         local_candidates.push(StateCandidate {
@@ -227,7 +201,7 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
                             state,
                         });
                         
-                        println!("Found exact match: seed {}", seeds[i]);
+                        println!("Found match: seed {}", seeds[i]);
                     }
                 }
                 
@@ -241,22 +215,6 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
             
             // Update global counters
             tested_count.fetch_add(local_tested, Ordering::Relaxed);
-            filtered_count.fetch_add(local_filtered, Ordering::Relaxed);
-            
-            // Progress reporting from thread 0 only
-            if chunk_id == 0 {
-                let current_tested = tested_count.load(Ordering::Relaxed);
-                if current_tested % (100_000_000) == 0 {
-                    let elapsed = start_time.elapsed().as_secs_f64();
-                    let progress = current_tested as f64 / total_seeds as f64 * 100.0;
-                    let estimated_total = elapsed / (current_tested as f64 / total_seeds as f64);
-                    let remaining = estimated_total - elapsed;
-                    let filter_rate = filtered_count.load(Ordering::Relaxed) as f64 / current_tested as f64 * 100.0;
-                    
-                    println!("Progress: {:.1}% ({}/{}), Elapsed: {:.1}s, Remaining: {:.1}s, Filtered: {:.1}%", 
-                             progress, current_tested, total_seeds, elapsed, remaining, filter_rate);
-                }
-            }
             
             local_candidates
         })
@@ -264,11 +222,9 @@ unsafe fn find_original_state_avx512(data_points: &[DataPoint]) -> Result<Vec<St
     
     let elapsed = start_time.elapsed();
     let final_tested = tested_count.load(Ordering::Relaxed);
-    let final_filtered = filtered_count.load(Ordering::Relaxed);
-    let filter_rate = if final_tested > 0 { final_filtered as f64 / final_tested as f64 * 100.0 } else { 0.0 };
     
-    println!("Parallel AVX-512 search completed in {:.2}s, tested {} seeds, filtered {:.1}% early", 
-             elapsed.as_secs_f64(), final_tested, filter_rate);
+    println!("Parallel AVX-512 search completed in {:.2}s, tested {} seeds", 
+             elapsed.as_secs_f64(), final_tested);
     
     // Report results
     match candidates.len() {
