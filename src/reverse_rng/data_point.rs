@@ -134,27 +134,6 @@ pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {
     Ok(data_points)
 }
 
-pub fn analyze_time_optimization(data_points: &[DataPoint]) -> TimeOptimization {
-    let num_points = data_points.len();
-    
-    // Estimate execution time based on constraint strength
-    // Each data point eliminates approximately 95% of candidates (reduces by factor of ~20)
-    let remaining_candidates = (4_300_000_000_u64 as f64) / (20_f64.powi(num_points as i32));
-    
-    // Assume we can check ~1 billion states per second
-    let estimated_execution_time = (remaining_candidates / 1_000_000_000.0).max(0.1);
-    
-    // Total time = collection time + execution time
-    let collection_time = num_points as f64 * 2.0; // 2 seconds per data point
-    let total_time = collection_time + estimated_execution_time;
-    
-    TimeOptimization {
-        data_points: num_points,
-        estimated_execution_time,
-        total_time_seconds: total_time,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -13,18 +13,6 @@ pub fn run(input_file: PathBuf) -> Result<(), Error> {
     let data_points = data_point::parse_input_file(&input_file)?;
     println!("Loaded {} data points", data_points.len());
     
-    // Analyze and recommend optimal data point count
-    let recommendation = data_point::analyze_time_optimization(&data_points);
-    println!("Time optimization analysis:");
-    println!("  Data points: {}", recommendation.data_points);
-    println!("  Estimated execution time: {:.2}s", recommendation.estimated_execution_time);
-    println!("  Total time (collection + execution): {:.2}s", recommendation.total_time_seconds);
-    
-    if data_points.len() < 6 {
-        println!("Warning: {} data points may not be sufficient for unique identification", data_points.len());
-        println!("Recommended: 6-7 data points for confident identification");
-    }
-    
     // Perform reverse engineering
     #[cfg(feature = "simd")]
     let search_result = simd_search::find_original_state_simd(&data_points);
