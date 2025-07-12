@@ -4,7 +4,7 @@ Standalone routing tool for Hades
 Loads the game files, mods, and a save file, and can run a lua script in that environment with game-accurate RNG.
 
 ```
-$ cargo run -- -f ~/Library/Application\ Support/Supergiant\ Games/Hades/Profile4.sav ./StartingBoonDemo.lua
+$ cargo run -- run -f ~/Library/Application\ Support/Supergiant\ Games/Hades/Profile4.sav ./StartingBoonDemo.lua
 SecondRoomReward        LockKeyDropRunProgress
 SecondRoomChaos false
 Type    Hammer

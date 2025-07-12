@@ -36,10 +36,10 @@ cargo build
 cargo build --release
 
 # Run a specific route analysis script
-cargo run -- <script.lua> --save-file <save_file.sav> --scripts-dir <hades_scripts_dir>
+cargo run -- run <script.lua> --save-file <save_file.sav> --scripts-dir <hades_scripts_dir>
 
 # Example: Run fresh file prediction
-cargo run -- FreshFilePredict.lua --save-file ./FreshFile.sav --scripts-dir ~/legendary/Hades/Content/Scripts/
+cargo run -- run FreshFilePredict.lua --save-file ./FreshFile.sav --scripts-dir ~/legendary/Hades/Content/Scripts/
 
 # RNG reverse engineering from observed data points
 cargo run -- reverse-rng data_points.txt
