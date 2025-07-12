@@ -3,16 +3,21 @@ use crate::reverse_rng::data_point::{DataPoint, StateCandidate};
 
 #[cfg(all(feature = "simd", target_arch = "x86_64"))]
 use crate::reverse_rng::simd_avx2::find_original_state_avx2;
-#[cfg(all(feature = "simd", target_arch = "x86_64"))]
+#[cfg(all(feature = "simd_nightly", target_arch = "x86_64"))]
 use crate::reverse_rng::simd_avx512::find_original_state_avx512;
 
 pub fn find_original_state_simd(data_points: &[DataPoint]) -> Result<Vec<StateCandidate>, Error> {
     #[cfg(feature = "simd")]
     {
-        if is_x86_feature_detected!("avx512f") {
-            println!("Using AVX-512 SIMD optimization for brute force search...");
-            return unsafe { find_original_state_avx512(data_points) };
-        } else if is_x86_feature_detected!("avx2") {
+        #[cfg(feature = "simd_nightly")]
+        {
+            if is_x86_feature_detected!("avx512f") {
+                println!("Using AVX-512 SIMD optimization for brute force search...");
+                return unsafe { find_original_state_avx512(data_points) };
+            }
+        }
+
+        if is_x86_feature_detected!("avx2") {
             println!("Using AVX2 SIMD optimization for brute force search...");
             return unsafe { find_original_state_avx2(data_points) };
         }

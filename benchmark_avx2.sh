@@ -6,7 +6,7 @@ echo "Building optimized releases..."
 cargo build --release --features simd
 
 echo ""
-echo "=== Benchmarking SIMD Implementation ==="  
+echo "=== Benchmarking AVX2 SIMD Implementation ==="
 time cargo run --release --features simd -- reverse-rng real_ursa_data_fixed.txt
 
 echo ""

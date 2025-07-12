@@ -26,6 +26,7 @@ rayon = "1.7"
 [features]
 default = []
 simd = []
+simd_nightly = ["simd"]
 
 [dev-dependencies]
 criterion = "0.3"

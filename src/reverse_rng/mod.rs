@@ -4,7 +4,7 @@ pub mod search;
 pub mod simd_search;
 #[cfg(all(feature = "simd", target_arch = "x86_64"))]
 mod simd_avx2;
-#[cfg(all(feature = "simd", target_arch = "x86_64"))]
+#[cfg(all(feature = "simd_nightly", target_arch = "x86_64"))]
 mod simd_avx512;
 
 use crate::error::Error;
