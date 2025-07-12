@@ -2,6 +2,10 @@ pub mod data_point;
 pub mod search;
 #[cfg(feature = "simd")]
 pub mod simd_search;
+#[cfg(all(feature = "simd", target_arch = "x86_64"))]
+mod simd_avx2;
+#[cfg(all(feature = "simd", target_arch = "x86_64"))]
+mod simd_avx512;
 
 use crate::error::Error;
 use std::path::PathBuf;

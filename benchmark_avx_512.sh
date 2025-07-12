@@ -3,8 +3,7 @@
 # Benchmark script to compare SIMD vs scalar reverse RNG performance
 
 echo "Building optimized releases..."
-cargo build --release --features simd
-cargo build --release
+cargo build +nightly --release --features simd
 
 echo ""
 echo "=== Benchmarking SIMD Implementation ==="  
