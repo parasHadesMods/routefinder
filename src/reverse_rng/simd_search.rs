@@ -40,23 +40,6 @@ pub fn find_original_state_simd(data_points: &[DataPoint]) -> Result<Vec<StateCa
 unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<StateCandidate>, Error> {
     println!("Starting AVX2 SIMD brute force search across 2^32 possible seeds...");
     
-    // Sort data points by constraint strength (most restrictive first)
-    let mut sorted_data_points = data_points.to_vec();
-    sorted_data_points.sort_by(|a, b| {
-        let constraint_a = constraint_strength(a);
-        let constraint_b = constraint_strength(b);
-        constraint_b.partial_cmp(&constraint_a).unwrap_or(std::cmp::Ordering::Equal)
-    });
-    
-    println!("Constraint analysis:");
-    for (i, dp) in sorted_data_points.iter().enumerate() {
-        let (min_u32, max_u32) = dp.valid_u32_range();
-        let range_size = (max_u32 as u64).saturating_sub(min_u32 as u64) + 1;
-        let selectivity = range_size as f64 / (u32::MAX as f64 + 1.0);
-        println!("  {}: {} offset={}, range_size={}, selectivity={:.6}", 
-                 i+1, dp.name, dp.offset, range_size, selectivity);
-    }
-    
     let start_time = Instant::now();
     let mut candidates = Vec::new();
     let mut tested_count = 0u64;
@@ -64,9 +47,9 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
     let total_seeds = 1u64 << 32;
     
     // Process seeds in chunks of 8 (AVX2 can handle 8x32-bit integers)
-    let mut seed_base = i32::MIN;
+    let mut seed_base: i64 = i32::MIN as i64;
     
-    while seed_base < i32::MAX - (CHUNK_SIZE as i32) + 1 {
+    while seed_base < i32::MAX as i64 {
         tested_count += CHUNK_SIZE as u64;
         
         // Progress reporting
@@ -83,14 +66,14 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
         
         // Load 8 consecutive seeds into AVX2 register
         let seeds = [
-            seed_base,
-            seed_base + 1,
-            seed_base + 2,
-            seed_base + 3,
-            seed_base + 4,
-            seed_base + 5,
-            seed_base + 6,
-            seed_base + 7,
+            seed_base as i32,
+            seed_base as i32 + 1,
+            seed_base as i32 + 2,
+            seed_base as i32 + 3,
+            seed_base as i32 + 4,
+            seed_base as i32 + 5,
+            seed_base as i32 + 6,
+            seed_base as i32 + 7,
         ];
         
         // Convert to u64 and compute initial PCG states
@@ -117,27 +100,7 @@ unsafe fn find_original_state_avx2(data_points: &[DataPoint]) -> Result<Vec<Stat
             }
         }
         
-        seed_base += CHUNK_SIZE as i32;
-    }
-    
-    // Handle remaining seeds that don't fit in a full chunk
-    while seed_base <= i32::MAX {
-        tested_count += 1;
-        
-        if is_valid_seed(seed_base, &sorted_data_points) {
-            let state = SggPcg::new(seed_base as u64).state();
-            
-            candidates.push(StateCandidate {
-                seed: seed_base,
-                state,
-            });
-            
-            println!("Found exact match: seed {}", seed_base);
-        } else {
-            filtered_count += 1;
-        }
-        
-        seed_base += 1;
+        seed_base += CHUNK_SIZE as i64;
     }
     
     let elapsed = start_time.elapsed();
