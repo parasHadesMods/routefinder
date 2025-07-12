@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a standalone routing tool for the game Hades that simulates game-accurate RNG to analyze optimal routes and outcomes. The tool loads game files, mods, and save files to run Lua scripts in an environment that mirrors the actual game engine.
 
+## Conventions
+
+When adding a new feature, DO NOT duplicate functions. Instead, modify the original function as needed.
+When adding a new feature, if the function has SIMD equivalents, also update the SIMD equivalent functions to provide the vectorized version once the scalar version is working.
+DO NOT fall back to the scalar implementation in SIMD functions.
+When updating SIMD functions, ultrathink how to vectorize the solutions. If you are unable to vectorize any part of the function, STOP and ASK FOR HELP.
+
 ## Architecture
 
 The project is a hybrid Rust/Lua application:
