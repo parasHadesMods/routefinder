@@ -110,16 +110,6 @@ The tool includes highly optimized SIMD implementations for maximum performance:
 | **SSE2** | Fallback SIMD | ~3x faster | All modern x86_64 CPUs |
 | **Scalar** | Single state | Baseline | All hardware |
 
-### Benchmark Results
-
-Real-world performance on `real_ursa_data_fixed.txt` (7 data points):
-
-```
-🚀 SIMD Implementation (AVX2): 11.40 seconds
-🐌 Scalar Implementation:       98.92 seconds
-💡 Performance improvement:     8.7x faster
-```
-
 ### Building with SIMD Support
 
 **Current (Requires Nightly Rust):**
@@ -202,14 +192,6 @@ grep -E 'avx512f|avx2|sse2' /proc/cpuinfo
 rustc --version
 rustc +nightly --version
 ```
-
-## Future Improvements
-
-### Planned Optimizations
-- **GPU Acceleration**: CUDA/OpenCL implementation for even faster search
-- **AVX-512 DQ Instructions**: Use native `_mm512_mullo_epi64` when available
-- **Cache Optimization**: Improve memory access patterns for better cache utilization
-- **ARM NEON**: SIMD support for Apple Silicon and ARM processors
 
 ### Benchmarking
 
