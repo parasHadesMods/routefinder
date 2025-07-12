@@ -4,7 +4,6 @@ mod read;
 mod reverse_rng;
 mod rng;
 mod save;
-mod smt_reverse_engineer;
 use clap::{Parser, Subcommand};
 use libm::ldexp;
 use lz4;
@@ -52,9 +51,6 @@ enum Commands {
         #[arg(long, default_value = "brute-force")]
         method: String,
         
-        /// Timeout in milliseconds for SMT solver
-        #[arg(long, default_value = "10000")]
-        timeout_ms: u64,
     },
 }
 
@@ -84,8 +80,8 @@ fn main() -> Result<()> {
         Commands::Rng { rng_command } => {
             handle_rng_command(rng_command)
         }
-        Commands::ReverseRng { input_file, method, timeout_ms } => {
-            handle_reverse_rng_command(input_file, method, timeout_ms)
+        Commands::ReverseRng { input_file, method } => {
+            handle_reverse_rng_command(input_file, method)
         }
     }
 }
@@ -236,14 +232,11 @@ fn handle_rng_command(rng_command: RngCommands) -> Result<()> {
     Ok(())
 }
 
-fn handle_reverse_rng_command(input_file: PathBuf, method: String, timeout_ms: u64) -> Result<()> {
+fn handle_reverse_rng_command(input_file: PathBuf, method: String) -> Result<()> {
     use reverse_rng::data_point;
     
     println!("Reverse engineering RNG state from: {:?}", input_file);
     println!("Method: {}", method);
-    if method == "smt" {
-        println!("SMT Solver timeout: {}ms", timeout_ms);
-    }
     
     // Parse input file
     let data_points = data_point::parse_input_file(&input_file)?;
@@ -264,12 +257,8 @@ fn handle_reverse_rng_command(input_file: PathBuf, method: String, timeout_ms: u
                 reverse_rng::search::find_original_state(&data_points)?
             }
         }
-        "smt" => {
-            println!("Using SMT solver method...");
-            smt_reverse_engineer::smt_reverse_engineer(&data_points)?
-        }
         _ => {
-            return Err(error::Error::from(format!("Unknown method: {}. Use 'brute-force' or 'smt'", method)));
+            return Err(error::Error::from(format!("Unknown method: {}. Use 'brute-force'", method)));
         }
     };
     
