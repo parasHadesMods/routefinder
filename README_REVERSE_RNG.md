@@ -69,17 +69,6 @@ Where:
 - **Optimal**: With SIMD optimization, execution time is so fast (~11s) that collection time dominates
 - **Recommendation**: Collect 8-10 data points for higher confidence, since execution overhead is minimal
 
-### Time Analysis (SIMD vs Scalar)
-
-| Data Points | Collection Time | SIMD Execution | Scalar Execution | Total Time (SIMD) |
-|-------------|----------------|----------------|------------------|-------------------|
-| 6 | 12s | ~11s | ~99s | **23s** |
-| 7 | 14s | ~11s | ~99s | **25s** |
-| 8 | 16s | ~11s | ~99s | **27s** |
-| 10 | 20s | ~11s | ~99s | **31s** |
-
-With SIMD optimization, the execution time becomes negligible compared to data collection time.
-
 ## Example Output
 
 ### SIMD-Optimized Search
