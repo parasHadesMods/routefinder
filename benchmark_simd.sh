@@ -8,7 +8,7 @@ cargo build --release
 
 echo ""
 echo "=== Benchmarking SIMD Implementation ==="  
-time cargo run --release --features simd -- reverse-rng real_ursa_data_fixed.txt
+time cargo +nightly run --release --features simd -- reverse-rng real_ursa_data_fixed.txt
 
 echo ""
 echo "Benchmark completed. Compare the execution times above."
