@@ -259,7 +259,7 @@ function CheckForced(forcedSeed, seed)
   end
 end
 
-function FindRemaining(run, doors, requirements, i, results)
+function FindRemaining(run, doors, requirements, i, results, output_table)
   local cid = "C"..i
   local nextCid = "C"..(i+1)
   -- Standing in front of a set of doors. Look at each door in turn.
@@ -275,6 +275,7 @@ function FindRemaining(run, doors, requirements, i, results)
     for _, reward in pairs(PredictRoomOptions(run, door, range)) do
       if CheckForced(requirements[cid].ForcedSeed, reward.Seed) and matches(requirements[cid].Room, reward) then
         -- If we found a door that we like,
+        reward.RoomName = door.Room.Name
         results[cid] = reward
         if requirements[nextCid] then
           -- go through that door, pick up the reward, and find out what new doors we're presented with.
@@ -284,13 +285,17 @@ function FindRemaining(run, doors, requirements, i, results)
           end
           local doors = ExitDoors(run, requirements[cid], reward)
           -- Now we're standing in front of another set of doors.
-          FindRemaining(run, doors, requirements, i+1, results)
+          FindRemaining(run, doors, requirements, i+1, results, output_table)
         else
           -- or, if there are no more requirements, print the result and exit.
           for _, reward in pairs(results) do
             clean_reward(reward)
           end
-          deep_print(results)
+          if output_table ~= nil then
+            table.insert(output_table, DeepCopyTable(results))
+          else
+            deep_print(results)
+          end
         end
         results[cid] = nil
       end

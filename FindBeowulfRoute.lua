@@ -44,13 +44,6 @@ local requirements = {
   C3 = {
     Offset = { Min = 5, Max = 25 },
     ForcedSeed = -1312722704,
-    Room = {
-      UpgradeOptions = function(options)
-        return one_matches({
-          ItemName = "ChaosBlessingAmmoTrait"
-        }, options)
-      end
-    },
     Exit = {}
   },
   C4 = {
