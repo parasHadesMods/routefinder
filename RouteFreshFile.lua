@@ -68,6 +68,26 @@ local requirements = {
         }, options)
       end
     },
+    Exit = {
+      RoomName = "A_Shop01"
+    }
+  },
+  C7 = {
+    Offset = { Min = 0, Max = 100, AddEstimatedOffset = true },
+    Room = {
+      StoreOptions = function(store_options)
+        return one_matches({
+            Args = {
+              UpgradeOptions = function(options)
+                return one_matches({
+                    ItemName = "TriggerCurseTrait",
+                    Rarity = "Legendary"
+                }, options)
+              end
+            }
+        }, store_options)
+      end
+    },
     Exit = {}
   }
 }
@@ -103,17 +123,22 @@ for _, route in pairs(result_table) do
     C4 = {
       Cast = route.C5.Uses - route.C4.EstimatedEndOfRoomOffset,
       Door = RewardForExitRoom(route.C4.Exits, route.C5.RoomName),
-      Upgrade = route["C4"].UpgradeOptions[1]
+      Take = route.C4.UpgradeOptions[1].ItemName .. " " .. route.C4.UpgradeOptions[1].Rarity,
     },
     C5 = {
       Cast = route.C6.Uses - route.C5.EstimatedEndOfRoomOffset,
       Door = "AthenaUpgrade"
     },
     C6 = {
-      Upgrade = route["C6"].UpgradeOptions[1]
+      Cast = route.C7.Uses - route.C6.EstimatedEndOfRoomOffset,
+      Take = route.C6.UpgradeOptions[1].ItemName .. " " .. route.C6.UpgradeOptions[1].Rarity,
+      Door = RewardForExitRoom(route.C6.Exits, route.C7.RoomName)
+    },
+    C7 = {
+      Take = "TriggerCurseTrait"
     }
   }
-  local cost = display.C2.Cast + display.C3.Cast + display.C4.Cast + display.C5.Cast
+  local cost = display.C2.Cast + display.C3.Cast + display.C4.Cast + display.C5.Cast + display.C6.Cast
   if min_cost == nil or min_cost > cost then
     min_cost = cost
     min_display = display
