@@ -5,10 +5,9 @@ use std::path::Path;
 #[derive(Debug, Clone)]
 pub struct DataPoint {
     pub offset: u64,
-    pub range_min: f64,
-    pub range_max: f64,
-    pub observed: f64,
     pub name: String,
+    pub min_u32: u32,
+    pub max_u32: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -25,37 +24,23 @@ pub struct TimeOptimization {
 }
 
 impl DataPoint {
-    /// Calculate the valid u32 range for this data point given rounding constraints
-    pub fn valid_u32_range(&self) -> (u32, u32) {
-        // We need to find which u32 values would produce our observed value
-        // when converted through: u32 -> [0,1] fraction -> scaled -> rounded to 2 decimal places
-        
-        // The observed value represents values that round to this when rounded to 2 decimal places
-        // This means the actual value before rounding was in the range [observed - 0.005, observed + 0.005)
-        // But we need to be more precise about the boundaries
-        
-        let range_size = self.range_max - self.range_min;
-        
-        // Values that would round to our observed value:
-        // If observed = X.YZ, then actual values in [X.YZ - 0.005, X.YZ + 0.005) would round to X.YZ
+    /// Calculate the valid u32 range for observed data point
+    pub fn calculate_observed_u32_range(range_min: f64, range_max: f64, observed: f64) -> (u32, u32) {
+        let range_size = range_max - range_min;
         
         // Find the range of actual values that would round to our observed value
-        let actual_min = self.observed - 0.005;
-        let actual_max = self.observed + 0.005;
+        let actual_min = observed - 0.005;
+        let actual_max = observed + 0.005;
         
         // Convert these actual values back to fractions of the [0,1] range
-        let fraction_min = (actual_min - self.range_min) / range_size;
-        let fraction_max = (actual_max - self.range_min) / range_size;
+        let fraction_min = (actual_min - range_min) / range_size;
+        let fraction_max = (actual_max - range_min) / range_size;
         
         // Clamp to valid [0, 1] range
         let fraction_min = fraction_min.max(0.0).min(1.0);
         let fraction_max = fraction_max.max(0.0).min(1.0);
         
         // Now find the u32 values that would map to these fractions
-        // u32 value V maps to fraction V / u32::MAX
-        // So we want u32 values V where fraction_min <= V / u32::MAX <= fraction_max
-        // Which means: fraction_min * u32::MAX <= V <= fraction_max * u32::MAX
-        
         let min_u32_exact = fraction_min * u32::MAX as f64;
         let max_u32_exact = fraction_max * u32::MAX as f64;
         
@@ -71,13 +56,38 @@ impl DataPoint {
             (min_u32, max_u32)
         }
     }
-    
+
+    /// Calculate the valid u32 range for range-based data point
+    pub fn calculate_range_u32_range(range: f64, lower_bound: f64, upper_bound: f64) -> (u32, u32) {
+        // Convert the bounds to fractions of the range [0, range]
+        let fraction_min = lower_bound / range;
+        let fraction_max = upper_bound / range;
+        
+        // Clamp to valid [0, 1] range
+        let fraction_min = fraction_min.max(0.0).min(1.0);
+        let fraction_max = fraction_max.max(0.0).min(1.0);
+        
+        // Find the u32 values that would map to these fractions
+        let min_u32_exact = fraction_min * u32::MAX as f64;
+        let max_u32_exact = fraction_max * u32::MAX as f64;
+        
+        // Convert to actual u32 bounds
+        let min_u32 = min_u32_exact.ceil() as u32;
+        let max_u32 = max_u32_exact.floor() as u32;
+        
+        // Handle edge case where the range is too narrow
+        if min_u32 > max_u32 {
+            let mid_u32 = ((min_u32_exact + max_u32_exact) * 0.5) as u32;
+            (mid_u32, mid_u32)
+        } else {
+            (min_u32, max_u32)
+        }
+    }
+
     /// Check if a given u32 value is consistent with this data point
     pub fn is_consistent_with(&self, value: u32) -> bool {
-        let (min_u32, max_u32) = self.valid_u32_range();
-        value >= min_u32 && value <= max_u32
+        value >= self.min_u32 && value <= self.max_u32
     }
-    
 }
 
 pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {
@@ -92,39 +102,82 @@ pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {
             continue;
         }
         
-        // Expected format: "name,offset,min,max,observed"
-        let parts: Vec<&str> = line.split(',').collect();
-        if parts.len() != 5 {
-            return Err(Error::from(format!(
-                "Invalid format on line {}: expected 5 comma-separated values", 
-                line_num + 1
-            )));
+        if line.starts_with("/range ") {
+            // New range format: "/range <name> <offset> <range> <lower_bound> <upper_bound>"
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() != 6 {
+                return Err(Error::from(format!(
+                    "Invalid /range format on line {}: expected '/range <name> <offset> <range> <lower_bound> <upper_bound>'", 
+                    line_num + 1
+                )));
+            }
+            
+            let name = parts[1].to_string();
+            let offset = parts[2].parse::<u64>()
+                .map_err(|_| Error::from(format!("Invalid offset on line {}", line_num + 1)))?;
+            let range = parts[3].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid range on line {}", line_num + 1)))?;
+            let lower_bound = parts[4].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid lower_bound on line {}", line_num + 1)))?;
+            let upper_bound = parts[5].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid upper_bound on line {}", line_num + 1)))?;
+            
+            if lower_bound >= upper_bound {
+                return Err(Error::from(format!(
+                    "Invalid bounds on line {}: lower_bound must be less than upper_bound", 
+                    line_num + 1
+                )));
+            }
+            
+            if range <= 0.0 {
+                return Err(Error::from(format!(
+                    "Invalid range on line {}: range must be positive", 
+                    line_num + 1
+                )));
+            }
+            
+            let (min_u32, max_u32) = DataPoint::calculate_range_u32_range(range, lower_bound, upper_bound);
+            data_points.push(DataPoint {
+                offset,
+                name,
+                min_u32,
+                max_u32,
+            });
+        } else {
+            // Original format: "name,offset,min,max,observed"
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() != 5 {
+                return Err(Error::from(format!(
+                    "Invalid format on line {}: expected 5 comma-separated values or '/range' format", 
+                    line_num + 1
+                )));
+            }
+            
+            let name = parts[0].to_string();
+            let offset = parts[1].parse::<u64>()
+                .map_err(|_| Error::from(format!("Invalid offset on line {}", line_num + 1)))?;
+            let range_min = parts[2].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid range_min on line {}", line_num + 1)))?;
+            let range_max = parts[3].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid range_max on line {}", line_num + 1)))?;
+            let observed = parts[4].parse::<f64>()
+                .map_err(|_| Error::from(format!("Invalid observed value on line {}", line_num + 1)))?;
+            
+            if range_min >= range_max {
+                return Err(Error::from(format!(
+                    "Invalid range on line {}: min must be less than max", 
+                    line_num + 1
+                )));
+            }
+            
+            let (min_u32, max_u32) = DataPoint::calculate_observed_u32_range(range_min, range_max, observed);
+            data_points.push(DataPoint {
+                offset,
+                name,
+                min_u32,
+                max_u32,
+            });
         }
-        
-        let name = parts[0].to_string();
-        let offset = parts[1].parse::<u64>()
-            .map_err(|_| Error::from(format!("Invalid offset on line {}", line_num + 1)))?;
-        let range_min = parts[2].parse::<f64>()
-            .map_err(|_| Error::from(format!("Invalid range_min on line {}", line_num + 1)))?;
-        let range_max = parts[3].parse::<f64>()
-            .map_err(|_| Error::from(format!("Invalid range_max on line {}", line_num + 1)))?;
-        let observed = parts[4].parse::<f64>()
-            .map_err(|_| Error::from(format!("Invalid observed value on line {}", line_num + 1)))?;
-        
-        if range_min >= range_max {
-            return Err(Error::from(format!(
-                "Invalid range on line {}: min must be less than max", 
-                line_num + 1
-            )));
-        }
-        
-        data_points.push(DataPoint {
-            offset,
-            range_min,
-            range_max,
-            observed,
-            name,
-        });
     }
     
     if data_points.is_empty() {
@@ -140,30 +193,28 @@ mod tests {
     
     #[test]
     fn test_data_point_valid_range() {
-        let dp = DataPoint {
+        let (min_u32, max_u32) = DataPoint::calculate_observed_u32_range(0.0, 1.0, 0.50);
+        let _dp = DataPoint {
             offset: 0,
-            range_min: 0.0,
-            range_max: 1.0,
-            observed: 0.50,
             name: "test".to_string(),
+            min_u32,
+            max_u32,
         };
         
-        let (min, max) = dp.valid_u32_range();
-        
         // For observed = 0.50 with range [0,1], we expect roughly the middle range
-        assert!(min < max);
-        assert!(min < u32::MAX / 2);
-        assert!(max > u32::MAX / 2);
+        assert!(min_u32 < max_u32);
+        assert!(min_u32 < u32::MAX / 2);
+        assert!(max_u32 > u32::MAX / 2);
     }
     
     #[test]
     fn test_consistency_check() {
+        let (min_u32, max_u32) = DataPoint::calculate_observed_u32_range(0.0, 10.0, 5.00);
         let dp = DataPoint {
             offset: 0,
-            range_min: 0.0,
-            range_max: 10.0,
-            observed: 5.00,
             name: "test".to_string(),
+            min_u32,
+            max_u32,
         };
         
         let middle_value = u32::MAX / 2;
@@ -195,24 +246,8 @@ mod tests {
         
         // Check that consecutive values have adjacent ranges
         for i in 0..decimal_values.len() - 1 {
-            let curr_dp = DataPoint {
-                offset: 0,
-                range_min,
-                range_max,
-                observed: decimal_values[i],
-                name: format!("test_{:.2}", decimal_values[i]),
-            };
-            
-            let next_dp = DataPoint {
-                offset: 0,
-                range_min,
-                range_max,
-                observed: decimal_values[i + 1],
-                name: format!("test_{:.2}", decimal_values[i + 1]),
-            };
-            
-            let (curr_min, curr_max) = curr_dp.valid_u32_range();
-            let (next_min, next_max) = next_dp.valid_u32_range();
+            let (curr_min, curr_max) = DataPoint::calculate_observed_u32_range(range_min, range_max, decimal_values[i]);
+            let (next_min, next_max) = DataPoint::calculate_observed_u32_range(range_min, range_max, decimal_values[i + 1]);
             
             // Check for perfect adjacency: curr_max + 1 should equal next_min
             if curr_max + 1 != next_min {
@@ -266,19 +301,8 @@ mod tests {
             let mut issues_found = 0;
             
             for i in 0..decimal_values.len() - 1 {
-                let curr_dp = DataPoint {
-                    offset: 0, range_min, range_max,
-                    observed: decimal_values[i],
-                    name: format!("test_{:.2}", decimal_values[i]),
-                };
-                let next_dp = DataPoint {
-                    offset: 0, range_min, range_max,
-                    observed: decimal_values[i + 1],
-                    name: format!("test_{:.2}", decimal_values[i + 1]),
-                };
-                
-                let (_, curr_max) = curr_dp.valid_u32_range();
-                let (next_min, _) = next_dp.valid_u32_range();
+                let (_, curr_max) = DataPoint::calculate_observed_u32_range(range_min, range_max, decimal_values[i]);
+                let (next_min, _) = DataPoint::calculate_observed_u32_range(range_min, range_max, decimal_values[i + 1]);
                 
                 if curr_max + 1 != next_min {
                     issues_found += 1;
@@ -295,5 +319,122 @@ mod tests {
             assert_eq!(issues_found, 0, "Found {} coverage issues in {}", issues_found, description);
             println!("  ✓ No gaps or overlaps found in all adjacencies");
         }
+    }
+
+    #[test]
+    fn test_range_data_point_valid_range() {
+        let (min_u32, max_u32) = DataPoint::calculate_range_u32_range(100.0, 25.0, 75.0);
+        let _dp = DataPoint {
+            offset: 0,
+            name: "test_range".to_string(),
+            min_u32,
+            max_u32,
+        };
+        
+        // For bounds [25, 75] in range [0, 100], we expect roughly 25%-75% of u32 space
+        assert!(min_u32 < max_u32);
+        assert!(min_u32 >= (u32::MAX as f64 * 0.25) as u32);
+        assert!(max_u32 <= (u32::MAX as f64 * 0.75) as u32);
+    }
+
+    #[test]
+    fn test_range_data_point_consistency() {
+        let (min_u32, max_u32) = DataPoint::calculate_range_u32_range(1.0, 0.4, 0.6);
+        let dp = DataPoint {
+            offset: 0,
+            name: "test_range".to_string(),
+            min_u32,
+            max_u32,
+        };
+        
+        let middle_value = u32::MAX / 2;
+        assert!(dp.is_consistent_with(middle_value));
+        
+        // Test edge cases
+        assert!(!dp.is_consistent_with(0));
+        assert!(!dp.is_consistent_with(u32::MAX));
+    }
+
+    #[test]
+    fn test_parse_range_format() {
+        let test_content = "# Test file with range format\n/range test_chamber 0 100.0 25.0 75.0\nchamber2,5,0.0,1.0,0.5\n";
+        
+        let mut data_points = Vec::new();
+        
+        for (_line_num, line) in test_content.lines().enumerate() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            
+            if line.starts_with("/range ") {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                assert_eq!(parts.len(), 6);
+                
+                let name = parts[1].to_string();
+                let offset = parts[2].parse::<u64>().unwrap();
+                let range = parts[3].parse::<f64>().unwrap();
+                let lower_bound = parts[4].parse::<f64>().unwrap();
+                let upper_bound = parts[5].parse::<f64>().unwrap();
+                
+                let (min_u32, max_u32) = DataPoint::calculate_range_u32_range(range, lower_bound, upper_bound);
+                data_points.push(DataPoint {
+                    offset,
+                    name,
+                    min_u32,
+                    max_u32,
+                });
+            } else {
+                let parts: Vec<&str> = line.split(',').collect();
+                assert_eq!(parts.len(), 5);
+                
+                let name = parts[0].to_string();
+                let offset = parts[1].parse::<u64>().unwrap();
+                let range_min = parts[2].parse::<f64>().unwrap();
+                let range_max = parts[3].parse::<f64>().unwrap();
+                let observed = parts[4].parse::<f64>().unwrap();
+                
+                let (min_u32, max_u32) = DataPoint::calculate_observed_u32_range(range_min, range_max, observed);
+                data_points.push(DataPoint {
+                    offset,
+                    name,
+                    min_u32,
+                    max_u32,
+                });
+            }
+        }
+        
+        assert_eq!(data_points.len(), 2);
+        
+        assert_eq!(data_points[0].name, "test_chamber");
+        assert_eq!(data_points[0].offset, 0);
+        
+        assert_eq!(data_points[1].name, "chamber2");
+        assert_eq!(data_points[1].offset, 5);
+    }
+
+    #[test]
+    fn test_accessor_methods() {
+        let (obs_min_u32, obs_max_u32) = DataPoint::calculate_observed_u32_range(0.0, 1.0, 0.5);
+        let observed_dp = DataPoint {
+            offset: 10,
+            name: "observed_test".to_string(),
+            min_u32: obs_min_u32,
+            max_u32: obs_max_u32,
+        };
+        
+        let (range_min_u32, range_max_u32) = DataPoint::calculate_range_u32_range(100.0, 25.0, 75.0);
+        let range_dp = DataPoint {
+            offset: 20,
+            name: "range_test".to_string(),
+            min_u32: range_min_u32,
+            max_u32: range_max_u32,
+        };
+        
+        assert_eq!(observed_dp.offset, 10);
+        assert_eq!(observed_dp.name, "observed_test");
+        
+        assert_eq!(range_dp.offset, 20);
+        assert_eq!(range_dp.name, "range_test");
     }
 }

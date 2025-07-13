@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Benchmark script for reverse_rng optimization tracking
-# Uses real_ursa_data_fixed.txt as test data (expected seed: 1152303697)
+# Uses test/real_rng_pre_styx.txt as test data (expected seed: 1152303697)
 
 echo "=== Reverse RNG Benchmark ==="
-echo "Data file: real_ursa_data_fixed.txt"
+echo "Data file: test/real_rng_pre_styx.txt"
 echo "Expected seed: 1152303697"
 echo "Starting benchmark..."
 echo
@@ -13,7 +13,7 @@ echo
 start_time=$(date +%s.%N)
 
 # Run the reverse_rng command
-cargo run --release -- reverse-rng real_ursa_data_fixed.txt
+cargo run --release -- reverse-rng test/real_rng_pre_styx.txt
 
 # Record end time
 end_time=$(date +%s.%N)

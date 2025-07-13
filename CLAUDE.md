@@ -8,10 +8,11 @@ This is a standalone routing tool for the game Hades that simulates game-accurat
 
 ## Conventions
 
-When adding a new feature, DO NOT duplicate functions. Instead, modify the original function as needed.
-When adding a new feature, if the function has SIMD equivalents, also update the SIMD equivalent functions to provide the vectorized version once the scalar version is working.
-DO NOT fall back to the scalar implementation in SIMD functions.
+** IMPORTANT** Always follow these code conventions
+
+When adding a new feature, *never* duplicate functions. Instead, modify the original function as needed.
 When updating SIMD functions, ultrathink how to vectorize the solutions. If you are unable to vectorize any part of the function, STOP and ASK FOR HELP.
+Dependencies are sensitive! Never add new dependencies without asking first.
 
 ## Architecture
 
@@ -111,12 +112,14 @@ cargo run --release -- reverse-rng data_points.txt
 ```
 
 ### Input Format
-Data points file should be CSV format:
+Data points file supports two formats:
 ```
-# Format: name,offset,min,max,observed
+# Observed format: name,offset,min,max,observed
 chamber1,0,0.0,100.0,52.42
 chamber2,5,0.0,1.0,0.59
-chamber3,10,-50.0,50.0,42.49
+
+# Range format: /range name offset range lower_bound upper_bound
+/range chamber3 10 100.0 40.0 45.0
 ```
 
 ### Performance
@@ -128,6 +131,6 @@ chamber3,10,-50.0,50.0,42.49
 ### Benchmarking
 To track optimization performance:
 ```bash
-# Run benchmark using real_ursa_data_fixed.txt (expected seed: 1152303697)
+# Run benchmark using test/real_rng_pre_styx.txt (expected seed: 1152303697)
 ./bench_reverse_rng.sh
 ```

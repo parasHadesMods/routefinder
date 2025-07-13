@@ -218,7 +218,8 @@ unsafe fn advance_pcg_states_simd_avx512(states: __m512i, delta: u64) -> __m512i
 
 #[target_feature(enable = "avx512f")]
 unsafe fn check_consistency_simd_avx512(values: &[u32; CHUNK_SIZE_AVX512], data_point: &DataPoint, results: &mut [i64; CHUNK_SIZE_AVX512]) {
-    let (min_u32, max_u32) = data_point.valid_u32_range();
+    let min_u32 = data_point.min_u32;
+    let max_u32 = data_point.max_u32;
     
     // Load values into SIMD register
     let values_256 = _mm256_loadu_si256(values.as_ptr() as *const __m256i);
@@ -364,7 +365,8 @@ mod tests {
             observed: 50.0,
         };
         
-        let (min_u32, max_u32) = data_point.valid_u32_range();
+        let min_u32 = data_point.min_u32;
+    let max_u32 = data_point.max_u32;
         
         // Test values: some inside range, some outside
         let test_values = [

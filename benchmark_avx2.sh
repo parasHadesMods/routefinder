@@ -7,7 +7,7 @@ cargo build --release --features simd
 
 echo ""
 echo "=== Benchmarking AVX2 SIMD Implementation ==="
-time cargo run --release --features simd -- reverse-rng real_ursa_data_fixed.txt
+time cargo run --release --features simd -- reverse-rng test/real_rng_pre_styx.txt
 
 echo ""
 echo "Benchmark completed. Compare the execution times above."

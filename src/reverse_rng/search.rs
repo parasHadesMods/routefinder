@@ -111,12 +111,12 @@ mod tests {
             
             // The offset in the data point represents the position where the value was generated
             // So we need to add 1 to account for the next_u32() call
+            let (min_u32, max_u32) = DataPoint::calculate_observed_u32_range(range_min, range_max, observed);
             data_points.push(DataPoint {
                 offset: rng_position + 1,
-                range_min,
-                range_max,
-                observed,
                 name: format!("test_{}", i),
+                min_u32,
+                max_u32,
             });
         }
         

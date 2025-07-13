@@ -24,7 +24,7 @@ cargo run --release -- reverse-rng data_points.txt
 cargo +nightly run --release --features simd -- reverse-rng data_points.txt
 
 # Generate test data from a known seed for verification
-cargo run --release -- reverse-rng real_ursa_data_fixed.txt
+cargo run --release -- reverse-rng test/real_rng_pre_styx.txt
 
 # Benchmark SIMD performa
 ./benchmark_simd.sh
@@ -32,8 +32,9 @@ cargo run --release -- reverse-rng real_ursa_data_fixed.txt
 
 ## Input Format
 
-The input file should contain data points in CSV format:
+The input file supports two data point formats:
 
+### Observed Format (CSV)
 ```
 # Comments start with #
 # Format: name,offset,min,max,observed
@@ -42,11 +43,18 @@ chamber2,5,0.0,1.0,0.59
 chamber3,10,-50.0,50.0,42.49
 ```
 
-Where:
+### Range Format (Space-separated)
+```
+# Format: /range name offset range lower_bound upper_bound
+/range chamber1 0 100.0 50.0 55.0
+/range chamber2 5 1.0 0.55 0.65
+```
+
+**Parameters:**
 - `name`: Descriptive name for the data point
 - `offset`: Number of RNG advances from the original state
-- `min,max`: Range used for scaling the random value
-- `observed`: The rounded result (2 decimal places) that was observed
+- **Observed format**: `min,max,observed` - range and rounded result (2 decimal places)
+- **Range format**: `range,lower_bound,upper_bound` - direct bounds specification
 
 ## How It Works
 
@@ -73,7 +81,7 @@ Where:
 
 ### SIMD-Optimized Search
 ```
-Reverse engineering RNG state from: "real_ursa_data_fixed.txt"
+Reverse engineering RNG state from: "test/real_rng_pre_styx.txt"
 Method: brute-force
 Loaded 7 data points
 Using AVX-512 SIMD optimization for brute force search...
@@ -88,7 +96,7 @@ Reverse engineering completed in 11.40s
 
 ### Scalar Search (for comparison)
 ```
-Reverse engineering RNG state from: "real_ursa_data_fixed.txt"
+Reverse engineering RNG state from: "test/real_rng_pre_styx.txt"
 Loaded 7 data points
 Starting brute force search across 2^32 possible seeds...
 Progress: 48.9% (2100000000/4294967296), Elapsed: 47.8s, Remaining: 49.9s
@@ -201,7 +209,7 @@ To benchmark your system's performance:
 ./benchmark_simd.sh
 
 # Or manually test with known data
-time cargo +nightly run --release --features simd -- reverse-rng real_ursa_data_fixed.txt
+time cargo +nightly run --release --features simd -- reverse-rng test/real_rng_pre_styx.txt
 ```
 
 Please share your benchmark results in issues to help optimize for different hardware configurations!

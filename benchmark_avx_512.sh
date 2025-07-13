@@ -7,7 +7,7 @@ cargo +nightly build --release --features simd_nightly
 
 echo ""
 echo "=== Benchmarking AVX-512 SIMD Implementation ==="
-time cargo +nightly run --release --features simd_nightly -- reverse-rng real_ursa_data_fixed.txt
+time cargo +nightly run --release --features simd_nightly -- reverse-rng test/real_rng_pre_styx.txt
 
 echo ""
 echo "Benchmark completed. Compare the execution times above."
