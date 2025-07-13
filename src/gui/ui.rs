@@ -118,7 +118,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ScrollController {
 
         if current_len > self.previous_text_len {
             // Create a large rectangle at the bottom to force scroll to bottom
-            let large_rect = Rect::new(0.0, 999999.0, 1.0, 1000000.0);
+            let large_rect = Rect::new(0.0, f64::MAX, 0.0, f64::MAX);
             ctx.scroll_area_to_view(large_rect);
             self.previous_text_len = current_len;
         }

@@ -192,7 +192,7 @@ fn execute_calculate_background(
                "--save-file", &save_file_path,
                "--scripts-dir", &expanded_scripts_dir,
                "--lua-var", &format!("AthenaSeed={}", seed),
-               "--lua-var", &format!("AthenaOffset={}", offset)])
+               "--lua-var", &format!("AthenaOffset={}", offset - 1)])
         .stdout(Stdio::piped())
         .spawn() {
         Ok(child) => child,
