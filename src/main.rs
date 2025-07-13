@@ -36,6 +36,10 @@ enum Commands {
         /// Hades Scripts directory
         #[arg(short = 's', long, value_name = "FILE")]
         scripts_dir: PathBuf,
+
+        /// Set Lua variables (format: variable=value)
+        #[arg(long = "lua-var", value_name = "VAR=VALUE")]
+        lua_vars: Vec<String>,
     },
     /// RNG operations
     Rng {
@@ -74,8 +78,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Run { script, save_file, scripts_dir } => {
-            run_script(script, save_file, scripts_dir)
+        Commands::Run { script, save_file, scripts_dir, lua_vars } => {
+            run_script(script, save_file, scripts_dir, lua_vars)
         }
         Commands::Rng { rng_command } => {
             handle_rng_command(rng_command)
@@ -86,7 +90,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn run_script(route_finder_script: PathBuf, save_file_path: PathBuf, hades_scripts_dir: PathBuf) -> Result<()> {
+fn run_script(route_finder_script: PathBuf, save_file_path: PathBuf, hades_scripts_dir: PathBuf, lua_vars: Vec<String>) -> Result<()> {
     let lua = unsafe { Lua::unsafe_new_with(mlua::StdLib::ALL, LuaOptions::new()) };
 
     let shared_rng = Rc::new(RefCell::new(SggPcg::new(0)));
@@ -159,6 +163,27 @@ fn run_script(route_finder_script: PathBuf, save_file_path: PathBuf, hades_scrip
             "#,
         )
         .exec()?;
+
+        // Set custom Lua variables from command line
+        for lua_var in &lua_vars {
+            if let Some((var_name, var_value)) = lua_var.split_once('=') {
+                // Try to parse as different types
+                if let Ok(int_val) = var_value.parse::<i64>() {
+                    lua.globals().set(var_name, int_val)?;
+                } else if let Ok(float_val) = var_value.parse::<f64>() {
+                    lua.globals().set(var_name, float_val)?;
+                } else if var_value.eq_ignore_ascii_case("true") {
+                    lua.globals().set(var_name, true)?;
+                } else if var_value.eq_ignore_ascii_case("false") {
+                    lua.globals().set(var_name, false)?;
+                } else {
+                    // Treat as string
+                    lua.globals().set(var_name, var_value)?;
+                }
+            } else {
+                eprintln!("Warning: Invalid lua-var format '{}'. Expected format: variable=value", lua_var);
+            }
+        }
 
         // load and run script
         match load_lua_file(&lua, &route_finder_script) {
