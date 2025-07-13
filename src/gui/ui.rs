@@ -1,5 +1,5 @@
-use druid::widget::{Button, Flex, Label, TextBox, Scroll, Split};
-use druid::{Widget, WidgetExt, Color, Selector};
+use druid::widget::{Button, Flex, Label, Scroll, TextBox};
+use druid::{Widget, WidgetExt, Selector};
 use crate::gui::AppState;
 
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
@@ -50,63 +50,55 @@ fn build_bottom_panel() -> impl Widget<AppState> {
     let text_display = Scroll::new(
         Label::new(|data: &AppState, _env: &_| data.text_output.clone())
             .padding(10.0)
-    );
+    ).expand_width();
     
     let button_panel = build_button_panel();
     
-    Split::columns(text_display, button_panel)
-        .split_point(0.7)
+    Flex::row()
+        .with_flex_child(text_display, 1.0)
+        .with_child(button_panel)
+        .must_fill_main_axis(true)
+        .expand_width()
 }
 
 fn build_button_panel() -> impl Widget<AppState> {
     Flex::column()
+        .cross_axis_alignment(druid::widget::CrossAxisAlignment::Fill)
         .with_child(
             Button::new("Top")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(BUTTON_PRESSED.with("Top".to_string()));
                 })
-                .background(Color::GRAY)
-                .padding(5.0)
         )
         .with_child(
             Button::new("High")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(BUTTON_PRESSED.with("High".to_string()));
                 })
-                .background(Color::GRAY)
-                .padding(5.0)
         )
         .with_child(
             Button::new("Middle")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(BUTTON_PRESSED.with("Middle".to_string()));
                 })
-                .background(Color::GRAY)
-                .padding(5.0)
         )
         .with_child(
             Button::new("Low")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(BUTTON_PRESSED.with("Low".to_string()));
                 })
-                .background(Color::GRAY)
-                .padding(5.0)
         )
         .with_child(
             Button::new("Bottom")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(BUTTON_PRESSED.with("Bottom".to_string()));
                 })
-                .background(Color::GRAY)
-                .padding(5.0)
         )
         .with_child(
             Button::new("Calculate")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(CALCULATE_PRESSED);
                 })
-                .background(Color::BLUE)
-                .padding(5.0)
+                .padding((0.0, 5.0))
         )
-        .padding(10.0)
 }
