@@ -22,7 +22,7 @@ impl Default for AppState {
         Self {
             offset: 7,
             button_history: Arc::new(Vec::new()),
-            text_output: "Current offset: 7".to_string(),
+            text_output: "Current offset: 7\n".to_string(),
             save_file_path: "FreshFile.sav".to_string(),
             scripts_dir_path: "~/legendary/Hades/Content/Scripts/".to_string(),
             script_file: "RouteFreshFile.lua".to_string(),
@@ -33,7 +33,7 @@ impl Default for AppState {
 impl AppState {
     pub fn add_button_press(&mut self, button_name: String) {
         let button_press = ButtonPress {
-            name: button_name,
+            name: button_name.clone(),
             offset: self.offset,
         };
         
@@ -42,7 +42,7 @@ impl AppState {
         self.button_history = Arc::new(history);
         
         self.offset += 1;
-        self.text_output = format!("Current offset: {}", self.offset);
+        self.text_output.push_str(&format!("Button pressed: {}\nCurrent offset: {}\n", button_name, self.offset));
     }
     
     pub fn get_button_range(button_name: &str) -> (u32, u32) {

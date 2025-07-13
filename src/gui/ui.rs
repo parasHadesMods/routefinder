@@ -30,7 +30,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for KeyboardController {
         // Handle mouse events to request focus
         if let Event::MouseDown(_) = event {
             ctx.request_focus();
-            println!("Requesting focus on mouse down");
         }
         
         
@@ -41,47 +40,34 @@ impl<W: Widget<AppState>> Controller<AppState, W> for KeyboardController {
         if let Event::KeyDown(key_event) = event {
             let text_field_has_focus = *self.focus_state.lock().unwrap();
             if !text_field_has_focus {
-                println!("Key pressed in KeyboardController: {:?}", key_event.key);
                 match key_event.key {
                     druid::keyboard_types::Key::Character(ref c) => {
-                        println!("Character: {}", c);
                         match c.to_uppercase().as_str() {
                             "T" => {
-                                println!("Triggering Top button");
                                 ctx.submit_command(BUTTON_PRESSED.with("Top".to_string()));
                                 ctx.set_handled();
                             }
                             "H" => {
-                                println!("Triggering High button");
                                 ctx.submit_command(BUTTON_PRESSED.with("High".to_string()));
                                 ctx.set_handled();
                             }
                             "M" => {
-                                println!("Triggering Middle button");
                                 ctx.submit_command(BUTTON_PRESSED.with("Middle".to_string()));
                                 ctx.set_handled();
                             }
                             "L" => {
-                                println!("Triggering Low button");
                                 ctx.submit_command(BUTTON_PRESSED.with("Low".to_string()));
                                 ctx.set_handled();
                             }
                             "B" => {
-                                println!("Triggering Bottom button");
                                 ctx.submit_command(BUTTON_PRESSED.with("Bottom".to_string()));
                                 ctx.set_handled();
                             }
-                            _ => {
-                                println!("Unhandled character: {}", c);
-                            }
+                            _ => {}
                         }
                     }
-                    _ => {
-                        println!("Non-character key: {:?}", key_event.key);
-                    }
+                    _ => {}
                 }
-            } else {
-                println!("Key event ignored - text field has focus");
             }
         }
     }
@@ -98,7 +84,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for TextFieldController {
         env: &Env,
     ) {
         if let LifeCycle::FocusChanged(gained_focus) = event {
-            println!("TextBox focus changed: {:?}", gained_focus);
             *self.focus_state.lock().unwrap() = *gained_focus;
         }
         child.lifecycle(ctx, event, data, env);
