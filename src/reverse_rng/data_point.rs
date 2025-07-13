@@ -136,6 +136,20 @@ pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {
                 )));
             }
             
+            if upper_bound > range {
+                return Err(Error::from(format!(
+                    "Invalid bounds on line {}: upper_bound ({}) cannot be greater than range ({}). Did you swap offset and range fields?", 
+                    line_num + 1, upper_bound, range
+                )));
+            }
+            
+            if lower_bound < 0.0 {
+                return Err(Error::from(format!(
+                    "Invalid bounds on line {}: lower_bound ({}) cannot be negative", 
+                    line_num + 1, lower_bound
+                )));
+            }
+            
             let (min_u32, max_u32) = DataPoint::calculate_range_u32_range(range, lower_bound, upper_bound);
             data_points.push(DataPoint {
                 offset,
@@ -167,6 +181,13 @@ pub fn parse_input_file(file_path: &Path) -> Result<Vec<DataPoint>, Error> {
                 return Err(Error::from(format!(
                     "Invalid range on line {}: min must be less than max", 
                     line_num + 1
+                )));
+            }
+            
+            if observed < range_min || observed > range_max {
+                return Err(Error::from(format!(
+                    "Invalid observed value on line {}: observed ({}) must be within range [{}, {}]", 
+                    line_num + 1, observed, range_min, range_max
                 )));
             }
             

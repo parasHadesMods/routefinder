@@ -1,0 +1,20 @@
+/range a 7 200 0 55
+/range a 8 200 45 105
+/range a 9 200 0 55
+/range a 10 200 145 200
+/range a 11 200 95 155
+/range a 12 200 0 55
+/range a 13 200 45 105
+/range a 14 200 0 55
+/range a 15 200 45 105
+/range a 16 200 95 155
+/range a 17 200 95 155
+/range a 18 200 45 105
+/range a 19 200 145 200
+/range a 20 200 0 55
+/range a 21 200 95 155
+/range a 22 200 0 55
+/range a 23 200 95 155
+/range a 24 200 145 200
+/range a 25 200 0 55
+# real seed -719183175
