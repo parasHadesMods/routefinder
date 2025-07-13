@@ -165,7 +165,7 @@ fn build_bottom_panel() -> impl Widget<AppState> {
     let text_display = Scroll::new(
         Label::new(|data: &AppState, _env: &_| data.text_output.clone())
             .padding(10.0)
-    ).expand_width();
+    ).expand();
     
     let button_panel = build_button_panel();
     
@@ -173,7 +173,7 @@ fn build_bottom_panel() -> impl Widget<AppState> {
         .with_flex_child(text_display, 1.0)
         .with_child(button_panel)
         .must_fill_main_axis(true)
-        .expand_width()
+        .expand()
 }
 
 fn build_button_panel() -> impl Widget<AppState> {
@@ -191,4 +191,5 @@ fn build_button_panel() -> impl Widget<AppState> {
                 })
                 .padding((0.0, 5.0))
         )
+        .with_flex_spacer(1.0)
 }
