@@ -64,6 +64,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for KeyboardController {
                                 ctx.submit_command(BUTTON_PRESSED.with("Bottom".to_string()));
                                 ctx.set_handled();
                             }
+                            "C" => {
+                                ctx.submit_command(CALCULATE_PRESSED);
+                                ctx.set_handled();
+                            }
                             _ => {}
                         }
                     }
@@ -221,7 +225,7 @@ fn build_button_panel() -> impl Widget<AppState> {
         .with_child(create_button_with_underlined_first_letter("Low"))
         .with_child(create_button_with_underlined_first_letter("Bottom"))
         .with_child(
-            Button::new("Calculate")
+            Button::new("C\u{0332}alculate")
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(CALCULATE_PRESSED);
                 })
