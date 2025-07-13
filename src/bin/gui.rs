@@ -8,6 +8,18 @@ use std::process::{Command, Stdio};
 
 type Result<T, E = Error> = core::result::Result<T, E>;
 
+fn expand_tilde(path: &str) -> String {
+    if path.starts_with('~') {
+        if let Some(home_dir) = std::env::var("HOME").ok() {
+            path.replacen('~', &home_dir, 1)
+        } else {
+            path.to_string()
+        }
+    } else {
+        path.to_string()
+    }
+}
+
 // Custom events for background thread communication
 pub const OUTPUT_UPDATE: Selector<String> = Selector::new("output-update");
 pub const CALCULATION_COMPLETE: Selector<()> = Selector::new("calculation-complete");
@@ -174,10 +186,11 @@ fn execute_calculate_background(
     // Execute route analysis with streaming output
     event_sink.submit_command(OUTPUT_UPDATE, "\n=== Route Analysis ===\n".to_string(), Target::Auto).ok();
     
+    let expanded_scripts_dir = expand_tilde(&scripts_dir_path);
     let mut route_child = match Command::new("cargo")
         .args(&["run", "--release", "--bin", "routefinder", "--", "run", &script_file, 
                "--save-file", &save_file_path,
-               "--scripts-dir", &scripts_dir_path,
+               "--scripts-dir", &expanded_scripts_dir,
                "--lua-var", &format!("AthenaSeed={}", seed),
                "--lua-var", &format!("AthenaOffset={}", offset)])
         .stdout(Stdio::piped())

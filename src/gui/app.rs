@@ -20,9 +20,9 @@ pub struct ButtonPress {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            offset: 7,
+            offset: 6,
             button_history: Arc::new(Vec::new()),
-            text_output: "Current offset: 7\n".to_string(),
+            text_output: "Current offset: 6\n".to_string(),
             save_file_path: "FreshFile.sav".to_string(),
             scripts_dir_path: "~/legendary/Hades/Content/Scripts/".to_string(),
             script_file: "RouteFreshFile.lua".to_string(),
@@ -32,6 +32,7 @@ impl Default for AppState {
 
 impl AppState {
     pub fn add_button_press(&mut self, button_name: String) {
+        self.offset += 1;
         let button_press = ButtonPress {
             name: button_name.clone(),
             offset: self.offset,
@@ -41,7 +42,6 @@ impl AppState {
         history.push(button_press);
         self.button_history = Arc::new(history);
         
-        self.offset += 1;
         self.text_output.push_str(&format!("Button pressed: {}\nCurrent offset: {}\n", button_name, self.offset));
     }
     
