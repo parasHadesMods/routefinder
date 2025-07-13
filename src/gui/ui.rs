@@ -6,6 +6,7 @@ use crate::gui::AppState;
 
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
 pub const CALCULATE_PRESSED: Selector<()> = Selector::new("calculate-pressed");
+pub const ADVANCE_PRESSED: Selector<()> = Selector::new("advance-pressed");
 pub const SCROLL_TO_BOTTOM: Selector<()> = Selector::new("scroll-to-bottom");
 
 // Shared state to track if any text field has focus
@@ -66,6 +67,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for KeyboardController {
                             }
                             "C" => {
                                 ctx.submit_command(CALCULATE_PRESSED);
+                                ctx.set_handled();
+                            }
+                            "A" => {
+                                ctx.submit_command(ADVANCE_PRESSED);
                                 ctx.set_handled();
                             }
                             _ => {}
@@ -197,6 +202,20 @@ fn build_top_panel(focus_state: TextFieldFocusState) -> impl Widget<AppState> {
                 )
                 .padding(5.0)
         )
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Found Seed:").fix_width(120.0))
+                .with_child(
+                    Label::new(|data: &AppState, _env: &_| {
+                        match data.found_seed {
+                            Some(seed) => seed.to_string(),
+                            None => "None".to_string(),
+                        }
+                    })
+                    .expand_width()
+                )
+                .padding(5.0)
+        )
         .padding(10.0)
 }
 
@@ -229,6 +248,14 @@ fn build_button_panel() -> impl Widget<AppState> {
                 .on_click(|_ctx, _data, _env| {
                     _ctx.submit_command(CALCULATE_PRESSED);
                 })
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Button::new("A\u{0332}dvance")
+                .on_click(|_ctx, _data, _env| {
+                    _ctx.submit_command(ADVANCE_PRESSED);
+                })
+                .disabled_if(|data: &AppState, _env| data.found_seed.is_none())
                 .padding((0.0, 5.0))
         )
         .with_flex_spacer(1.0)

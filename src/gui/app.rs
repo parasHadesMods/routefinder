@@ -9,6 +9,7 @@ pub struct AppState {
     pub save_file_path: String,
     pub scripts_dir_path: String,
     pub script_file: String,
+    pub found_seed: Option<i32>,
 }
 
 #[derive(Clone, Data)]
@@ -26,6 +27,7 @@ impl Default for AppState {
             save_file_path: "FreshFile.sav".to_string(),
             scripts_dir_path: "~/legendary/Hades/Content/Scripts/".to_string(),
             script_file: "RouteFreshFile.lua".to_string(),
+            found_seed: None,
         }
     }
 }

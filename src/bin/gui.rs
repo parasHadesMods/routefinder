@@ -1,5 +1,5 @@
 use routefinder::error::Error;
-use routefinder::gui::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED}, app::ButtonPress};
+use routefinder::gui::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED, ADVANCE_PRESSED}, app::ButtonPress};
 use druid::{AppLauncher, WindowDesc, EventCtx, Event, Env, WidgetExt, ExtEventSink, Target, Selector};
 use druid::widget::Controller;
 use std::fs::File;
@@ -24,6 +24,7 @@ fn expand_tilde(path: &str) -> String {
 pub const OUTPUT_UPDATE: Selector<String> = Selector::new("output-update");
 pub const CALCULATION_COMPLETE: Selector<()> = Selector::new("calculation-complete");
 pub const CALCULATION_ERROR: Selector<String> = Selector::new("calculation-error");
+pub const SEED_FOUND: Selector<i32> = Selector::new("seed-found");
 
 fn main() -> Result<()> {
     struct AppController;
@@ -48,6 +49,11 @@ fn main() -> Result<()> {
                         data.text_output = format!("Error: {}", e);
                     }
                 }
+                Event::Command(cmd) if cmd.is(ADVANCE_PRESSED) => {
+                    if let Err(e) = execute_advance(data, ctx.get_external_handle()) {
+                        data.text_output.push_str(&format!("\nError: {}\n", e));
+                    }
+                }
                 Event::Command(cmd) if cmd.is(OUTPUT_UPDATE) => {
                     if let Some(text) = cmd.get::<String>(OUTPUT_UPDATE) {
                         data.text_output.push_str(&text);
@@ -59,6 +65,11 @@ fn main() -> Result<()> {
                 Event::Command(cmd) if cmd.is(CALCULATION_ERROR) => {
                     if let Some(error_msg) = cmd.get::<String>(CALCULATION_ERROR) {
                         data.text_output.push_str(&format!("\nError: {}\n", error_msg));
+                    }
+                }
+                Event::Command(cmd) if cmd.is(SEED_FOUND) => {
+                    if let Some(seed) = cmd.get::<i32>(SEED_FOUND) {
+                        data.found_seed = Some(*seed);
                     }
                 }
                 _ => {}
@@ -93,6 +104,30 @@ fn execute_calculate(data: &mut AppState, event_sink: ExtEventSink) -> Result<()
     
     std::thread::spawn(move || {
         execute_calculate_background(button_history, script_file, save_file_path, scripts_dir_path, offset, event_sink);
+    });
+    
+    Ok(())
+}
+
+fn execute_advance(data: &mut AppState, event_sink: ExtEventSink) -> Result<()> {
+    // Clear previous output
+    data.text_output.clear();
+    
+    // Increment offset by 1
+    data.offset += 1;
+    data.text_output.push_str(&format!("Advanced to offset: {}\n", data.offset));
+    
+    // Get the found seed - advance should only be called when we have a seed
+    let seed = data.found_seed.ok_or_else(|| Error::from("No seed found - cannot advance".to_string()))?;
+    
+    // Clone data needed for background thread
+    let script_file = data.script_file.clone();
+    let save_file_path = data.save_file_path.clone();
+    let scripts_dir_path = data.scripts_dir_path.clone();
+    let offset = data.offset as i32;
+    
+    std::thread::spawn(move || {
+        execute_advance_background(script_file, save_file_path, scripts_dir_path, seed, offset, event_sink);
     });
     
     Ok(())
@@ -182,6 +217,7 @@ fn execute_calculate_background(
         }
     };
     event_sink.submit_command(OUTPUT_UPDATE, format!("\n=== Found Seed: {} ===\n", seed), Target::Auto).ok();
+    event_sink.submit_command(SEED_FOUND, seed, Target::Auto).ok();
     
     // Execute route analysis with streaming output
     event_sink.submit_command(OUTPUT_UPDATE, "\n=== Route Analysis ===\n".to_string(), Target::Auto).ok();
@@ -224,6 +260,56 @@ fn execute_calculate_background(
     
     // Clean up temp file and signal completion
     std::fs::remove_file(temp_file_path).ok();
+    event_sink.submit_command(CALCULATION_COMPLETE, (), Target::Auto).ok();
+}
+
+fn execute_advance_background(
+    script_file: String,
+    save_file_path: String,
+    scripts_dir_path: String,
+    seed: i32,
+    offset: i32,
+    event_sink: ExtEventSink,
+) {
+    // Execute route analysis with the existing seed and new offset
+    event_sink.submit_command(OUTPUT_UPDATE, "\n=== Route Analysis (Advanced) ===\n".to_string(), Target::Auto).ok();
+    
+    let expanded_scripts_dir = expand_tilde(&scripts_dir_path);
+    let mut route_child = match Command::new("cargo")
+        .args(&["run", "--release", "--bin", "routefinder", "--", "run", &script_file, 
+               "--save-file", &save_file_path,
+               "--scripts-dir", &expanded_scripts_dir,
+               "--lua-var", &format!("AthenaSeed={}", seed),
+               "--lua-var", &format!("AthenaOffset={}", offset - 1)])
+        .stdout(Stdio::piped())
+        .spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+            return;
+        }
+    };
+    
+    let stdout = route_child.stdout.take().unwrap();
+    let reader = BufReader::new(stdout);
+    
+    for line in reader.lines() {
+        match line {
+            Ok(line_str) => {
+                event_sink.submit_command(OUTPUT_UPDATE, format!("{}\n", line_str), Target::Auto).ok();
+            }
+            Err(e) => {
+                event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+                return;
+            }
+        }
+    }
+    
+    if let Err(e) = route_child.wait() {
+        event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+        return;
+    }
+    
     event_sink.submit_command(CALCULATION_COMPLETE, (), Target::Auto).ok();
 }
 

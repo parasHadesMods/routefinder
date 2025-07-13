@@ -43,6 +43,9 @@ cargo build
 # Build optimized release version
 cargo build --release
 
+# Build the GUI application
+cargo build --bin fresh-file-finder
+
 # Run a specific route analysis script
 cargo run -- run <script.lua> --save-file <save_file.sav> --scripts-dir <hades_scripts_dir>
 
