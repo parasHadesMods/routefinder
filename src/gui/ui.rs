@@ -1,11 +1,12 @@
-use druid::widget::{Button, Flex, Label, Scroll, TextBox, SizedBox};
-use druid::{Widget, WidgetExt, Selector, Event, EventCtx, Env, LifeCycle, LifeCycleCtx};
+use druid::widget::{Button, Flex, Label, Scroll, TextBox};
+use druid::{Widget, WidgetExt, Selector, Event, EventCtx, Env, LifeCycle, LifeCycleCtx, UpdateCtx, Rect};
 use druid::widget::Controller;
 use std::sync::{Arc, Mutex};
 use crate::gui::AppState;
 
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
 pub const CALCULATE_PRESSED: Selector<()> = Selector::new("calculate-pressed");
+pub const SCROLL_TO_BOTTOM: Selector<()> = Selector::new("scroll-to-bottom");
 
 // Shared state to track if any text field has focus
 type TextFieldFocusState = Arc<Mutex<bool>>;
@@ -90,6 +91,40 @@ impl<W: Widget<AppState>> Controller<AppState, W> for TextFieldController {
     }
 }
 
+struct ScrollController {
+    previous_text_len: usize,
+}
+
+impl ScrollController {
+    fn new() -> Self {
+        Self {
+            previous_text_len: 0,
+        }
+    }
+}
+
+impl<W: Widget<AppState>> Controller<AppState, W> for ScrollController {
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        let current_len = data.text_output.len();
+        
+        child.update(ctx, old_data, data, env);
+
+        if current_len > self.previous_text_len {
+            // Create a large rectangle at the bottom to force scroll to bottom
+            let large_rect = Rect::new(0.0, 999999.0, 1.0, 1000000.0);
+            ctx.scroll_area_to_view(large_rect);
+            self.previous_text_len = current_len;
+        }
+    }
+}
+
 fn create_button_with_underlined_first_letter(text: &str) -> impl Widget<AppState> {
     let chars: Vec<char> = text.chars().collect();
     let formatted_text = if !chars.is_empty() {
@@ -165,6 +200,7 @@ fn build_bottom_panel() -> impl Widget<AppState> {
     let text_display = Scroll::new(
         Label::new(|data: &AppState, _env: &_| data.text_output.clone())
             .padding(10.0)
+            .controller(ScrollController::new())
     ).expand();
     
     let button_panel = build_button_panel();
