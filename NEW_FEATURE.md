@@ -23,7 +23,7 @@ The specification is as follows:
       - print the new current offset in the text area
     When calculate is pressed, we:
       - create a text file for input to reverse-rng using the /range feature. Each previous button press should create one line in the file, as follows:
-         /range <button-name>, offset, 200, <button-low>, <button-high>
+         /range <button-name>, offset, 16, <button-low>, <button-high>
       - button-low and button-high are derived from the button-name as follows:
         - Bottom = 0, 4
         - Low = 3, 7
