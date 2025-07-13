@@ -15,33 +15,39 @@ pub fn build_ui() -> impl Widget<AppState> {
 }
 
 fn build_top_panel() -> impl Widget<AppState> {
-    Flex::row()
-        .with_flex_child(
-            Flex::column()
-                .with_child(Label::new("Save File Path:"))
-                .with_child(
+    Flex::column()
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Save File Path:").fix_width(120.0))
+                .with_flex_child(
                     TextBox::new()
                         .lens(AppState::save_file_path)
-                ),
-            1.0
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
         )
-        .with_flex_child(
-            Flex::column()
-                .with_child(Label::new("Scripts Directory:"))
-                .with_child(
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Scripts Directory:").fix_width(120.0))
+                .with_flex_child(
                     TextBox::new()
                         .lens(AppState::scripts_dir_path)
-                ),
-            1.0
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
         )
-        .with_flex_child(
-            Flex::column()
-                .with_child(Label::new("Script File:"))
-                .with_child(
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Script File:").fix_width(120.0))
+                .with_flex_child(
                     TextBox::new()
                         .lens(AppState::script_file)
-                ),
-            1.0
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
         )
         .padding(10.0)
 }
