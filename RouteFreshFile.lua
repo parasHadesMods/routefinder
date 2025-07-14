@@ -69,23 +69,17 @@ local requirements = {
       end
     },
     Exit = {
-      RoomName = "A_Shop01"
+      RoomName = "A_MiniBoss01"
     }
   },
   C7 = {
     Offset = { Min = 0, Max = 100, AddEstimatedOffset = true },
     Room = {
-      StoreOptions = function(store_options)
+      UpgradeOptions = function(options)
         return one_matches({
-            Args = {
-              UpgradeOptions = function(options)
-                return one_matches({
-                    ItemName = "TriggerCurseTrait",
-                    Rarity = "Legendary"
-                }, options)
-              end
-            }
-        }, store_options)
+            ItemName = "TriggerCurseTrait",
+            Rarity = "Legendary"
+        }, options)
       end
     },
     Exit = {}
