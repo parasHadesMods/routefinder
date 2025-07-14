@@ -1,5 +1,5 @@
 use routefinder::error::Error;
-use routefinder::gui::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED, ADVANCE_PRESSED}, app::ButtonPress};
+use routefinder::gui::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED, ADVANCE_PRESSED, CLEAR_PRESSED}, app::ButtonPress};
 use druid::{AppLauncher, WindowDesc, EventCtx, Event, Env, WidgetExt, ExtEventSink, Target, Selector};
 use druid::widget::Controller;
 use std::fs::File;
@@ -53,6 +53,9 @@ fn main() -> Result<()> {
                     if let Err(e) = execute_advance(data, ctx.get_external_handle()) {
                         data.text_output.push_str(&format!("\nError: {}\n", e));
                     }
+                }
+                Event::Command(cmd) if cmd.is(CLEAR_PRESSED) => {
+                    data.clear();
                 }
                 Event::Command(cmd) if cmd.is(OUTPUT_UPDATE) => {
                     if let Some(text) = cmd.get::<String>(OUTPUT_UPDATE) {

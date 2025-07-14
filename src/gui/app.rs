@@ -47,6 +47,10 @@ impl AppState {
         self.text_output.push_str(&format!("Button pressed: {}\nCurrent offset: {}\n", button_name, self.offset));
     }
     
+    pub fn clear(&mut self) {
+        *self = Self::default();
+    }
+    
     pub fn get_button_range(button_name: &str) -> (u32, u32) {
         match button_name {
             "Bottom" => (0, 4),

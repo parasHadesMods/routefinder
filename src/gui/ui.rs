@@ -7,6 +7,7 @@ use crate::gui::AppState;
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
 pub const CALCULATE_PRESSED: Selector<()> = Selector::new("calculate-pressed");
 pub const ADVANCE_PRESSED: Selector<()> = Selector::new("advance-pressed");
+pub const CLEAR_PRESSED: Selector<()> = Selector::new("clear-pressed");
 pub const SCROLL_TO_BOTTOM: Selector<()> = Selector::new("scroll-to-bottom");
 
 // Shared state to track if any text field has focus
@@ -256,6 +257,13 @@ fn build_button_panel() -> impl Widget<AppState> {
                     _ctx.submit_command(ADVANCE_PRESSED);
                 })
                 .disabled_if(|data: &AppState, _env| data.found_seed.is_none())
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Button::new("Clear")
+                .on_click(|_ctx, _data, _env| {
+                    _ctx.submit_command(CLEAR_PRESSED);
+                })
                 .padding((0.0, 5.0))
         )
         .with_flex_spacer(1.0)
