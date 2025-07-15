@@ -48,7 +48,15 @@ LazyDeepCopy.Unstub = function(t)
 end
 
 function LazyDeepCopyTable(t)
-    local stub = { __target = t.__target or t }
+    -- Take a shallow copy, so if the original is modified we don't see the change.
+    local snapshot = {}
+    local original = t.__target or t
+    
+    for k,v in pairs(original) do
+        snapshot[k] = v
+    end
+    
+    local stub = { __target = snapshot }
     setmetatable(stub, StubMetaTable)
     return stub
 end

@@ -1,5 +1,7 @@
 Import "Utils/FindRoute.lua"
 Import "Utils/DeepPrint.lua"
+Import "Utils/LazyDeepCopyTable.lua"
+DeepCopyTable = LazyDeepCopyTable
 
 local C2Door = CreateC2Door({
     SecondRoomName = "RoomSimple01", -- Athena Room
