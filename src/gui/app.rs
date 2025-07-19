@@ -25,8 +25,8 @@ impl Default for AppState {
             button_history: Arc::new(Vec::new()),
             text_output: "Current offset: 6\n".to_string(),
             save_file_path: "FreshFile.sav".to_string(),
-            scripts_dir_path: "~/legendary/Hades/Content/Scripts/".to_string(),
-            script_file: "RouteFreshFile.lua".to_string(),
+            scripts_dir_path: "~/workspace/hades/routefinder/assets/Scripts/".to_string(),
+            script_file: "RouteFreshFileIncrementally.lua".to_string(),
             found_seed: None,
         }
     }

@@ -92,6 +92,9 @@ ModUtil.WrapBaseFunction("CheckPreviousReward", function( baseFunc, currentRun, 
 end)
 
 function PickUpReward(run, requirements, reward)
+  if run.CurrentRoom.NoReward == true then
+    return
+  end
   local lootName = run.CurrentRoom.ChosenRewardType
   if lootName == "LockKeyDropRunProgress" then
     run.NumRerolls = run.NumRerolls + 1

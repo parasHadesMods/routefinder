@@ -117,21 +117,21 @@ end
 local meRoute = results[1]
 Display(meRoute)
 
--- Second section. All we care about is getting Impending Doom before Meg with low manips.
--- We also want to avoid midshop because it will probably throw us off route.
+-- Second section. All we care about is getting Impending Doom early, with low manips.
+-- It might not be possible to get it before Meg if we haven't had a bag refill yet.
+-- We also want to avoid midshop in Tartarus because it will probably throw us off route.
 local secondSectionStates = {}
-local basicRequirements = NewRequirements(8, 13)
+local basicRequirements = NewRequirements(8, 16)
 basicRequirements.SelectUpgrade = SelectUpgrade
 for ci=8,11 do
   basicRequirements["C"..ci].Exit.Reward = Not("Shop")
 end
-for ci=10,12 do -- we can't get another meta reward in C8 or C9 because we've had too many
+for ci=10,16 do -- we can't get another meta reward in C8 or C9 because we've had too many; if bag has no boons they should refill by 16
   local requirements = DeepCopyTable(basicRequirements)
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
-    ItemName = "AresLongCurseTrait",
-    Rarity = "Epic"
+    ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.Run, meRoute.C7.Door, requirements, 7, 13, meRoute.C7.Seed, meRoute.C7.oMinimum)
+  local state = SetupFindIncrementally(meRoute.C7.Run, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum)
   table.insert(secondSectionStates, state)
 end
 
