@@ -5,17 +5,26 @@ local state = {}
 -- o = offset, number of rng increments (since reset)
 -- c = chamber, chamber number
 -- r = room, the full room object
+-- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
 function Setup(run, door, requirements, cStart, cEnd, oStart)
+    -- validate
+    for ci=cStart+1,cEnd do
+        if requirements["C" .. ci] == nil then
+            print("Missing requirements for C" .. ci)
+        end
+    end
+
     -- clear previous state
     state = {}
     state.Increments = 0
     state.Requirements = requirements
     state.cStart = cStart
+    state.cLastPrediction = cEnd - 1 -- to get results for C7, our last prediction is from C6
     state.cEnd = cEnd
     state.rssReached = {} -- by depth
-    for i=cStart,cEnd+1 do
+    for i=cStart,cEnd do
         state.rssReached[i] = {}
     end
     table.insert(state.rssReached[cStart], 
@@ -23,7 +32,6 @@ function Setup(run, door, requirements, cStart, cEnd, oStart)
             Run = run,
             Seed = NextSeeds[1],
             Door = door,
-            Display = "",
             oMinimum = oStart,
             oNext = oStart
         }
@@ -56,9 +64,10 @@ function NextRooms(rCurrent, ci)
 end
 
 function IncrementChamber(ci)
-    for _, room in pairs(state.rssReached[ci]) do
+    for i, room in ipairs(state.rssReached[ci]) do
         local rsNext = NextRooms(room, ci)
         for _, rNext in pairs(rsNext) do
+            rNext.iPrevious = i
             table.insert(state.rssReached[ci+1], rNext)
         end
         room.oNext = room.oNext + 1
@@ -67,21 +76,22 @@ end
 
 function Increment()
     state.Increments = state.Increments + 1
-    for ci=state.cStart,state.cEnd do
+    for ci=state.cStart,state.cLastPrediction do
         IncrementChamber(ci)
     end
 end
 
-function MonitorProgress()
-    if state.Increments % 10 == 0 then
-        local progress = state.Increments .. ": " .. #state.rssReached[state.cStart]
-        for ci=state.cStart+1,state.cEnd do
-            progress = progress .. " " .. #state.rssReached[ci]
-        end
-        print(progress)
-    end
-end
-
 function Results()
-    return state.rssReached[state.cEnd]
+    local results = {}
+    for _, room in pairs(state.rssReached[state.cEnd]) do
+        local result = {}
+        result["C" .. state.cEnd] = room
+        local iPrevious = room.iPrevious
+        for ci=state.cEnd-1,state.cStart,-1 do
+            result["C" .. ci] = state.rssReached[ci][iPrevious]
+            iPrevious = result["C" .. ci].iPrevious
+        end
+        table.insert(results, result)
+    end
+    return results
 end

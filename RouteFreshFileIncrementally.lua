@@ -97,10 +97,8 @@ local prediction = PredictLoot(c2ExitDoor) -- standing in front of c3 door, in c
 local result_table = {}
 
 Setup(CurrentRun, c2ExitDoor, requirements, 2, 7, AthenaOffset)
-i = 0
-while i < 12 do
+while #Results() == 0 do
   Increment()
-  i = i + 1
 end
 
 local result_table = Results()
