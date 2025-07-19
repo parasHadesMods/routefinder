@@ -1,6 +1,6 @@
 Import "Utils/FindIncrementally.lua"
--- Import "Utils/LazyDeepCopyTable.lua"
--- DeepCopyTable = LazyDeepCopyTable
+Import "Utils/LazyDeepCopyTable.lua"
+DeepCopyTable = LazyDeepCopyTable
 
 local C2Door = CreateC2Door({
     SecondRoomName = "RoomSimple01", -- Athena Room
