@@ -7,7 +7,7 @@ Import "Utils/FindRoute.lua"
 -- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
-function SetupFindIncrementally(run, door, requirements, cStart, cEnd, oStart)
+function SetupFindIncrementally(run, door, requirements, cStart, cEnd, seed, oStart)
     local state = {}
     -- validate
     if requirements.SelectUpgrade == nil then
@@ -34,7 +34,7 @@ function SetupFindIncrementally(run, door, requirements, cStart, cEnd, oStart)
     table.insert(state.rssReached[cStart], 
         {
             Run = run,
-            Seed = NextSeeds[1],
+            Seed = seed,
             Door = door,
             oMinimum = oStart,
             oNext = oStart

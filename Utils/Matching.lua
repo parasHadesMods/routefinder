@@ -119,6 +119,12 @@ function MatchesOne(options)
   end
 end
 
+function Not(option)
+  return function(candidate)
+    return candidate ~= option
+  end
+end
+
 function minimum_matches( requirements, candidates, min )
   if type(candidates) ~= "table" then
     debug_false("minimum_matches: not table")
