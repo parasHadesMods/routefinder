@@ -44,7 +44,7 @@ local requireAresFirst = NewRequirements(3, 7)
 requireAresFirst.C3.Exit.Reward = "AresUpgrade"
 requireAresFirst.C4.Room.UpgradeOptions = OneMatches({
   ItemName = "AresWeaponTrait",
-  Rarity = MatchesOne({ "Rare", "Epic" })
+  Rarity = MatchesOne({ "Epic" })
 })
 requireAresFirst.C5.Exit.Reward = "AthenaUpgrade"
 requireAresFirst.C6.Room.UpgradeOptions = OneMatches({
@@ -64,7 +64,7 @@ requireAthenaFirst.C4.Room.UpgradeOptions = OneMatches({
 requireAthenaFirst.C5.Exit.Reward = "AresUpgrade"
 requireAthenaFirst.C6.Room.UpgradeOptions = OneMatches({
   ItemName = "AresWeaponTrait",
-  Rarity = MatchesOne({ "Rare", "Epic" })
+  Rarity = MatchesOne({ "Epic" })
 })
 requireAthenaFirst.C6.Exit.RoomName = "A_MiniBoss01"
 requireAthenaFirst.C7.Room.UpgradeOptions = OneMatches({
