@@ -32,20 +32,20 @@ function NewRequirements(cStart, cEnd)
   return r
 end
 
-local RequiredUpgradeOptions = { "AresWeaponTrait", "AthenaSecondaryTrait", "TriggerCurseTrait" }
-
-function SelectUpgradeOption(options)
+local Upgrades = { "AresWeaponTrait", "AthenaSecondaryTrait", "TriggerCurseTrait" }
+function SelectUpgrade(options)
   for _, option in ipairs(options) do
-    for _, requiredItemName in ipairs(RequiredUpgradeOptions) do
-      if option.ItemName == requiredItemName then
-        return option
+      for _, requiredItemName in ipairs(Upgrades) do
+        if option.ItemName == requiredItemName then
+            return option
+        end
       end
-    end
   end
   return options[1]
 end
 
 local requireAresFirst = NewRequirements(3, 7)
+requireAresFirst.SelectUpgrade = SelectUpgrade
 requireAresFirst.C3.Exit.Reward = "AresUpgrade"
 requireAresFirst.C4.Room.UpgradeOptions = OneMatches({
   ItemName = "AresWeaponTrait",
@@ -62,6 +62,7 @@ requireAresFirst.C7.Room.UpgradeOptions = OneMatches({
 })
 
 local requireAthenaFirst = NewRequirements(3, 7)
+requireAthenaFirst.SelectUpgrade = SelectUpgrade
 requireAthenaFirst.C3.Exit.Reward = "AthenaUpgrade"
 requireAthenaFirst.C4.Room.UpgradeOptions = OneMatches({
   ItemName = "AthenaSecondaryTrait"
@@ -101,7 +102,7 @@ function Display(route)
     if thisRoom ~= nil then
       local current = {}
       if thisRoom.UpgradeOptions ~= nil then
-        local selected = SelectUpgradeOption(thisRoom.UpgradeOptions)
+        local selected = SelectUpgrade(thisRoom.UpgradeOptions)
         current.Take = selected.ItemName .. " " .. selected.Rarity
       end
       if nextRoom ~= nil then

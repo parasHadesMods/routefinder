@@ -104,6 +104,10 @@ function PickUpReward(run, requirements, reward)
       -- no boon requirements, just pick the first option
       itemName = reward.UpgradeOptions[1].ItemName
       rarity = reward.UpgradeOptions[1].Rarity
+    elseif type(requirements) == "function" then
+      local selected = requirements(reward.UpgradeOptions)
+      itemName = selected.ItemName
+      rarity = selected.Rarity
     else
       itemName = requirements.ItemName
       rarity = requirements.Rarity or "Common"

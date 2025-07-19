@@ -10,6 +10,10 @@ Import "Utils/FindRoute.lua"
 function SetupFindIncrementally(run, door, requirements, cStart, cEnd, oStart)
     local state = {}
     -- validate
+    if requirements.SelectUpgrade == nil then
+        print("WARNING: SelectUpgrade not provided, will select first boon!")
+    end
+
     for ci=cStart+1,cEnd do
         if requirements["C" .. ci] == nil then
             print("Missing requirements for C" .. ci)
@@ -52,7 +56,7 @@ local function nextRooms(state, rCurrent, ci)
             reward.oMinimum = reward.EstimatedEndOfRoomOffset
             reward.oNext = reward.oMinimum
             if not requirements.SkipReward then
-                PickUpReward(reward.Run, requirements.Boon, reward)
+                PickUpReward(reward.Run, state.Requirements.SelectUpgrade, reward)
             end
             for _, door in pairs(ExitDoors(reward.Run, requirements, reward)) do
                 local doorReward = DeepCopyTable(reward)
