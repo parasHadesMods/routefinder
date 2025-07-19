@@ -23,14 +23,6 @@ end
 
 NextSeeds[1] = AthenaSeed
 
-function RewardForExitRoom(exits, roomName)
-  for _, exit in pairs(exits) do
-    if exit.RoomName == roomName then
-      return exit.Reward
-    end
-  end
-end
-
 function NewRequirements(cStart, cEnd)
   local r = {}
   for ci=cStart,cEnd do
@@ -38,6 +30,19 @@ function NewRequirements(cStart, cEnd)
     r[cid] = { Room = {}, Exit = {} }
   end
   return r
+end
+
+local RequiredUpgradeOptions = { "AresWeaponTrait", "AthenaSecondaryTrait", "TriggerCurseTrait" }
+
+function SelectUpgradeOption(options)
+  for _, option in ipairs(options) do
+    for _, requiredItemName in ipairs(RequiredUpgradeOptions) do
+      if option.ItemName == requiredItemName then
+        return option
+      end
+    end
+  end
+  return options[1]
 end
 
 local requireAresFirst = NewRequirements(3, 7)
@@ -87,43 +92,26 @@ local results = FindIncrementally({
   SetupFindIncrementally(CurrentRun, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaOffset)
 })
 
-local min_cost = nil
-local min_display = nil
-for _, route in pairs(results) do
-  local display = {
-    C2 = {
-      Cast = route.C3.Uses - AthenaOffset,
-      Door = c2ExitDoor.Room.ChosenRewardType
-    },
-    C3 = {
-      Cast = route.C4.Uses - route.C3.EstimatedEndOfRoomOffset,
-      Door = RewardForExitRoom(route.C3.Exits, route.C4.RoomName)
-    },
-    C4 = {
-      Cast = route.C5.Uses - route.C4.EstimatedEndOfRoomOffset,
-      Door = RewardForExitRoom(route.C4.Exits, route.C5.RoomName),
-      Take = route.C4.UpgradeOptions[1].ItemName .. " " .. route.C4.UpgradeOptions[1].Rarity,
-    },
-    C5 = {
-      Cast = route.C6.Uses - route.C5.EstimatedEndOfRoomOffset,
-      Door = RewardForExitRoom(route.C5.Exits, route.C6.RoomName)
-    },
-    C6 = {
-      Cast = route.C7.Uses - route.C6.EstimatedEndOfRoomOffset,
-      Take = route.C6.UpgradeOptions[1].ItemName .. " " .. route.C6.UpgradeOptions[1].Rarity,
-      Door = RewardForExitRoom(route.C6.Exits, route.C7.RoomName)
-    },
-    C7 = {
-      Take = "TriggerCurseTrait"
-    }
-  }
-  local cost = display.C2.Cast + display.C3.Cast + display.C4.Cast + display.C5.Cast + display.C6.Cast
-  if min_cost == nil or min_cost > cost then
-    min_cost = cost
-    min_display = display
+function Display(route)
+  local display = {}
+  for ci=1,50 do
+    local thisRoom = route["C" .. ci]
+    local nextRoom = route["C" .. (ci + 1)]
+
+    if thisRoom ~= nil then
+      local current = {}
+      if thisRoom.UpgradeOptions ~= nil then
+        local selected = SelectUpgradeOption(thisRoom.UpgradeOptions)
+        current.Take = selected.ItemName .. " " .. selected.Rarity
+      end
+      if nextRoom ~= nil then
+        current.Cast = nextRoom.Uses - thisRoom.oMinimum
+        current.Door = thisRoom.Door.Room.ForceLootName or thisRoom.Door.Room.ChosenRewardType
+      end
+      display["C" .. ci] = current
+    end
   end
+  deep_print(display)
 end
 
-if min_display ~= nil then
-  deep_print(min_display)
-end
+Display(results[1])
