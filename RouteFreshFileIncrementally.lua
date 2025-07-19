@@ -35,9 +35,7 @@ function NewRequirements(cStart, cEnd)
   local r = {}
   for ci=cStart,cEnd do
     local cid = "C" .. ci
-    r[cid] = {}
-    r[cid].Room = {}
-    r[cid].Exit = {}
+    r[cid] = { Room = {}, Exit = {} }
   end
   return r
 end
