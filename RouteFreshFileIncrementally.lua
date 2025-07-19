@@ -31,57 +31,48 @@ function RewardForExitRoom(exits, roomName)
   end
 end
 
-local requirements = {
-  C3 = {
-    Room = {},
-    Exit = {
-      Reward = "AresUpgrade",
-    }
-  },
-  C4 = {
-    Room = {
-      UpgradeOptions = function(options)
-        return one_matches({
-            ItemName = "AresWeaponTrait",
-            Rarity = function (rarity)
-              return matches_one({ "Rare", "Epic" }, rarity)
-            end
-        }, options)
-      end
-    },
-    Exit = {}
-  },
-  C5 = {
-    Room = {},
-    Exit = {
-      Reward = "AthenaUpgrade"
-    }
-  },
-  C6 = {
-    Room = {
-      UpgradeOptions = function(options)
-        return one_matches({
-            ItemName = "AthenaSecondaryTrait"
-        }, options)
-      end
-    },
-    Exit = {
-      RoomName = "A_MiniBoss01"
-    }
-  },
-  C7 = {
-    Room = {
-      UpgradeOptions = function(options)
-        return one_matches({
-            ItemName = "TriggerCurseTrait",
-            Rarity = "Legendary"
-        }, options)
-      end
-    },
-    Exit = {}
-  }
-}
+function NewRequirements(cStart, cEnd)
+  local r = {}
+  for ci=cStart,cEnd do
+    local cid = "C" .. ci
+    r[cid] = {}
+    r[cid].Room = {}
+    r[cid].Exit = {}
+  end
+  return r
+end
 
+local requireAresFirst = NewRequirements(3, 7)
+requireAresFirst.C3.Exit.Reward = "AresUpgrade"
+requireAresFirst.C4.Room.UpgradeOptions = OneMatches({
+  ItemName = "AresWeaponTrait",
+  Rarity = MatchesOne({ "Rare", "Epic" })
+})
+requireAresFirst.C5.Exit.Reward = "AthenaUpgrade"
+requireAresFirst.C6.Room.UpgradeOptions = OneMatches({
+  ItemName = "AthenaSecondaryTrait"
+})
+requireAresFirst.C6.Exit.RoomName = "A_MiniBoss01"
+requireAresFirst.C7.Room.UpgradeOptions = OneMatches({
+  ItemName = "TriggerCurseTrait",
+  Rarity = "Legendary"
+})
+
+local requireAthenaFirst = NewRequirements(3, 7)
+requireAthenaFirst.C3.Exit.Reward = "AthenaUpgrade"
+requireAthenaFirst.C4.Room.UpgradeOptions = OneMatches({
+  ItemName = "AthenaSecondaryTrait"
+})
+requireAthenaFirst.C5.Exit.Reward = "AresUpgrade"
+requireAthenaFirst.C6.Room.UpgradeOptions = OneMatches({
+  ItemName = "AresWeaponTrait",
+  Rarity = MatchesOne({ "Rare", "Epic" })
+})
+requireAthenaFirst.C6.Exit.RoomName = "A_MiniBoss01"
+requireAthenaFirst.C7.Room.UpgradeOptions = OneMatches({
+  ItemName = "TriggerCurseTrait",
+  Rarity = "Legendary"
+})
 
 RandomSynchronize()
 local c2ExitRoomData = ChooseNextRoomData(CurrentRun)
@@ -93,18 +84,14 @@ c2ExitDoor.Room.RewardStoreName = "MetaProgress"
 
 CurrentRun.CurrentRoom = C2Door.Room
 
-local prediction = PredictLoot(c2ExitDoor) -- standing in front of c3 door, in c2
-local result_table = {}
+local results = FindIncrementally({
+  SetupFindIncrementally(CurrentRun, c2ExitDoor, requireAresFirst, 2, 7, AthenaOffset),
+  SetupFindIncrementally(CurrentRun, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaOffset)
+})
 
-Setup(CurrentRun, c2ExitDoor, requirements, 2, 7, AthenaOffset)
-while #Results() == 0 do
-  Increment()
-end
-
-local result_table = Results()
 local min_cost = nil
 local min_display = nil
-for _, route in pairs(result_table) do
+for _, route in pairs(results) do
   local display = {
     C2 = {
       Cast = route.C3.Uses - AthenaOffset,
@@ -112,7 +99,7 @@ for _, route in pairs(result_table) do
     },
     C3 = {
       Cast = route.C4.Uses - route.C3.EstimatedEndOfRoomOffset,
-      Door = "AresUpgrade"
+      Door = RewardForExitRoom(route.C3.Exits, route.C4.RoomName)
     },
     C4 = {
       Cast = route.C5.Uses - route.C4.EstimatedEndOfRoomOffset,
@@ -121,7 +108,7 @@ for _, route in pairs(result_table) do
     },
     C5 = {
       Cast = route.C6.Uses - route.C5.EstimatedEndOfRoomOffset,
-      Door = "AthenaUpgrade"
+      Door = RewardForExitRoom(route.C5.Exits, route.C6.RoomName)
     },
     C6 = {
       Cast = route.C7.Uses - route.C6.EstimatedEndOfRoomOffset,

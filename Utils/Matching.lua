@@ -75,6 +75,12 @@ function one_matches(requirements, candidates)
   return false
 end
 
+function OneMatches(requirements)
+  return function(candidates)
+    return one_matches(requirements, candidates)
+  end
+end
+
 function matches_table(requirements, candidates)
   if type(candidates) ~= "table" then
     debug_false("matches_table: not table")
@@ -105,6 +111,12 @@ function matches_one(options, candidate)
   end
   debug_false("matches_one: no matches")
   return false
+end
+
+function MatchesOne(options)
+  return function(candidate)
+    return matches_one(options, candidate)
+  end
 end
 
 function minimum_matches( requirements, candidates, min )

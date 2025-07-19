@@ -1,5 +1,4 @@
 Import "Utils/FindRoute.lua"
-local state = {}
 
 -- Notation
 -- o = offset, number of rng increments (since reset)
@@ -8,7 +7,8 @@ local state = {}
 -- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
-function Setup(run, door, requirements, cStart, cEnd, oStart)
+function SetupFindIncrementally(run, door, requirements, cStart, cEnd, oStart)
+    local state = {}
     -- validate
     for ci=cStart+1,cEnd do
         if requirements["C" .. ci] == nil then
@@ -36,9 +36,10 @@ function Setup(run, door, requirements, cStart, cEnd, oStart)
             oNext = oStart
         }
     )
+    return state
 end
 
-function NextRooms(rCurrent, ci)
+local function nextRooms(state, rCurrent, ci)
     local results = {}
     local requirements = state.Requirements["C" .. (ci + 1)]
 
@@ -63,9 +64,9 @@ function NextRooms(rCurrent, ci)
     return results
 end
 
-function IncrementChamber(ci)
+local function incrementChamber(state, ci)
     for i, room in ipairs(state.rssReached[ci]) do
-        local rsNext = NextRooms(room, ci)
+        local rsNext = nextRooms(state, room, ci)
         for _, rNext in pairs(rsNext) do
             rNext.iPrevious = i
             table.insert(state.rssReached[ci+1], rNext)
@@ -74,14 +75,14 @@ function IncrementChamber(ci)
     end
 end
 
-function Increment()
+local function stateIncrement(state)
     state.Increments = state.Increments + 1
     for ci=state.cStart,state.cLastPrediction do
-        IncrementChamber(ci)
+        incrementChamber(state, ci)
     end
 end
 
-function Results()
+local function stateResults(state)
     local results = {}
     for _, room in pairs(state.rssReached[state.cEnd]) do
         local result = {}
@@ -92,6 +93,19 @@ function Results()
             iPrevious = result["C" .. ci].iPrevious
         end
         table.insert(results, result)
+    end
+    return results
+end
+
+function FindIncrementally(states)
+    local results = {}
+    while #results == 0 do
+        for _, state in pairs(states) do
+            stateIncrement(state)
+            for _, result in pairs(stateResults(state)) do
+                table.insert(results, result)
+            end
+        end
     end
     return results
 end
