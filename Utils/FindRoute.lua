@@ -126,10 +126,12 @@ function PickUpReward(run, requirements, reward)
   CurrentRun = oldRun
 end
 
-function PredictRoomOptions( run, door, range )
+function PredictRoomOptions( state, door, range )
   local oldUses = ParasDoorPredictions.CurrentUses
   local oldCurrentRun = CurrentRun
-  CurrentRun = run
+  CurrentRun = state.CurrentRun
+  local oldGameState = GameState
+  GameState = state.GameState
   local predictions = {}
   for uses=range.Min, range.Max do
     RandomSynchronize(uses)
@@ -177,6 +179,7 @@ function PredictRoomOptions( run, door, range )
   end
   RandomSynchronize(oldUses) -- reset
   CurrentRun = oldCurrentRun
+  GameState = oldGameState
   return predictions
 end
 
@@ -279,7 +282,8 @@ function FindRemaining(run, doors, requirements, i, results, output_table)
       range.Min = range.Min + results[previousCid].EstimatedEndOfRoomOffset
       range.Max = range.Max + results[previousCid].EstimatedEndOfRoomOffset
     end
-    for _, reward in pairs(PredictRoomOptions(run, door, range)) do
+    -- TODO: BUG - not tracking GameState; this is basically irrelevant on a maxed file but VERY relevant in Fresh File
+    for _, reward in pairs(PredictRoomOptions({ CurrentRun = run, GameState = GameState }, door, range)) do
       if CheckForced(requirements[cid].ForcedSeed, reward.Seed) and matches(requirements[cid].Room, reward) then
         -- If we found a door that we like,
         reward.RoomName = door.Room.Name

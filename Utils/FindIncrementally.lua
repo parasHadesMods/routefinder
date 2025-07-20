@@ -7,7 +7,7 @@ Import "Utils/FindRoute.lua"
 -- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
-function SetupFindIncrementally(run, door, requirements, cStart, cEnd, seed, oStart)
+function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd, seed, oStart)
     local state = {}
     -- validate
     if requirements.SelectUpgrade == nil then
@@ -33,7 +33,7 @@ function SetupFindIncrementally(run, door, requirements, cStart, cEnd, seed, oSt
     end
     table.insert(state.rssReached[cStart], 
         {
-            Run = run,
+            State = { CurrentRun = run, GameState = gameState },
             Seed = seed,
             Door = door,
             oMinimum = oStart,
@@ -43,22 +43,74 @@ function SetupFindIncrementally(run, door, requirements, cStart, cEnd, seed, oSt
     return state
 end
 
+local function moveToNextRoom(previousState, reward, door)
+    -- Leave previous room and update history to reflect what happened
+
+    -- Add the current room to history
+    local run = DeepCopyTable(previousState.CurrentRun)
+    table.insert(run.RoomHistory, run.CurrentRoom)
+    -- UpdateRunHistoryCache (this side-effects GameState)
+    local oldGameState = GameState
+    GameState = DeepCopyTable(previousState.GameState)
+    UpdateRunHistoryCache(run, run.CurrentRoom)
+
+    -- Prepare next room
+    local room = DeepCopyTable(door.Room)
+
+    -- Select and record the encounter (this side-effects GameState)
+    -- start of encounter
+    room.Encounter = reward.Prediction.Encounter
+    RecordEncounter(run, room.Encounter)
+    -- end of
+	run.EncountersCompletedCache[room.Encounter.Name] = (run.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
+	GameState.EncountersCompletedCache[room.Encounter.Name] = (GameState.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
+
+    run.RewardStores = DeepCopyTable(reward.Prediction.CurrentRun.RewardStores)
+    run.LastWellShopDepth = reward.Prediction.CurrentRun.LastWellShopDepth
+
+    if room.WingRoom then
+      run.WingDepth = (run.WingDepth or 0) + 1
+    else
+      run.WingDepth = 0
+    end
+    if room.WingEndRoom then
+      run.CompletedStyxWings = (run.CompletedStyxWings or 0) + 1
+    end
+    if room.PersistentStore then
+      if room.Store == nil then
+        room.Store = { StoreOptions = reward.StoreOptions }
+      end
+    end
+    if run.CurrentRoom.CloseDoorsOnUse then
+      CloseDoorForRun(run, door)
+    end
+    -- Enter next room
+    run.CurrentRoom = room
+    run.RoomCreations[room.Name] = (run.RoomCreations[room.Name] or 0) + 1
+    NextSeeds[1] = reward.Seed
+    
+    -- Restore the old GameState and return the new state
+    local newState = { CurrentRun = run, GameState = GameState }
+    GameState = oldGameState
+    return newState
+  end
+
 local function nextRooms(state, rCurrent, ci)
     local results = {}
     local requirements = state.Requirements["C" .. (ci + 1)]
 
     NextSeeds[1] = rCurrent.Seed
-    for _, reward in pairs(PredictRoomOptions(rCurrent.Run, rCurrent.Door, { Min = rCurrent.oNext, Max = rCurrent.oNext })) do
+    for _, reward in pairs(PredictRoomOptions(rCurrent.State, rCurrent.Door, { Min = rCurrent.oNext, Max = rCurrent.oNext })) do
         if matches(requirements.Room, reward) then
             reward.RoomName = rCurrent.Door.Room.Name
-            reward.Run = MoveToNextRoom(rCurrent.Run, reward, rCurrent.Door)
+            reward.State = moveToNextRoom(rCurrent.State, reward, rCurrent.Door)
             reward.Seed = NextSeeds[1]
             reward.oMinimum = reward.EstimatedEndOfRoomOffset
             reward.oNext = reward.oMinimum
             if not requirements.SkipReward then
-                PickUpReward(reward.Run, state.Requirements.SelectUpgrade, reward)
+                PickUpReward(reward.State.CurrentRun, state.Requirements.SelectUpgrade, reward)
             end
-            for _, door in pairs(ExitDoors(reward.Run, requirements, reward)) do
+            for _, door in pairs(ExitDoors(reward.State.CurrentRun, requirements, reward)) do
                 local doorReward = DeepCopyTable(reward)
                 doorReward.Door = door
                 table.insert(results, doorReward)

@@ -90,8 +90,8 @@ c2ExitDoor.Room.RewardStoreName = "MetaProgress"
 CurrentRun.CurrentRoom = C2Door.Room
 
 local results = FindIncrementally({
-  SetupFindIncrementally(CurrentRun, c2ExitDoor, requireAresFirst, 2, 7, AthenaSeed, AthenaOffset),
-  SetupFindIncrementally(CurrentRun, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaSeed, AthenaOffset)
+  SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAresFirst, 2, 7, AthenaSeed, AthenaOffset),
+  SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaSeed, AthenaOffset)
 })
 
 function Display(route)
@@ -131,7 +131,7 @@ for ci=10,16 do -- we can't get another meta reward in C8 or C9 because we've ha
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
     ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.Run, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum)
+  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum)
   table.insert(secondSectionStates, state)
 end
 
