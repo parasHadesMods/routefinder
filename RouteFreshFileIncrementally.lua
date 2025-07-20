@@ -131,7 +131,7 @@ for ci=10,16 do -- we can't get another meta reward in C8 or C9 because we've ha
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
     ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum)
+  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
   table.insert(secondSectionStates, state)
 end
 

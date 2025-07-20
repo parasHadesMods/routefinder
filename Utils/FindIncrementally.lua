@@ -7,7 +7,7 @@ Import "Utils/FindRoute.lua"
 -- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
-function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd, seed, oStart)
+function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd, seed, oStart, oWiggleRoom)
     local state = {}
     -- validate
     if requirements.SelectUpgrade == nil then
@@ -28,6 +28,7 @@ function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd
     state.cLastPrediction = cEnd - 1 -- to get results for C7, our last prediction is from C6
     state.cEnd = cEnd
     state.rssReached = {} -- by depth
+    state.oWiggleRoom = oWiggleRoom or 0
     for i=cStart,cEnd do
         state.rssReached[i] = {}
     end
@@ -37,7 +38,7 @@ function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd
             Seed = seed,
             Door = door,
             oMinimum = oStart,
-            oNext = oStart
+            oNext = oStart + state.oWiggleRoom
         }
     )
     return state
@@ -46,24 +47,20 @@ end
 local function moveToNextRoom(previousState, reward, door)
     -- Leave previous room and update history to reflect what happened
 
-    -- Add the current room to history
     local run = DeepCopyTable(previousState.CurrentRun)
-    table.insert(run.RoomHistory, run.CurrentRoom)
-    -- UpdateRunHistoryCache (this side-effects GameState)
-    local oldGameState = GameState
-    GameState = DeepCopyTable(previousState.GameState)
-    UpdateRunHistoryCache(run, run.CurrentRoom)
-
     -- Prepare next room
     local room = DeepCopyTable(door.Room)
 
+    local oldGameState = GameState
+    GameState = DeepCopyTable(previousState.GameState)
     -- Select and record the encounter (this side-effects GameState)
-    -- start of encounter
+    -- start of encounter (on entering the room)
     room.Encounter = reward.Prediction.Encounter
     RecordEncounter(run, room.Encounter)
-    -- end of
-	run.EncountersCompletedCache[room.Encounter.Name] = (run.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
-	GameState.EncountersCompletedCache[room.Encounter.Name] = (GameState.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
+
+    -- Add the current room to history (this side-effects GameState)
+    table.insert(run.RoomHistory, run.CurrentRoom)
+    UpdateRunHistoryCache(run, run.CurrentRoom)
 
     run.RewardStores = DeepCopyTable(reward.Prediction.CurrentRun.RewardStores)
     run.LastWellShopDepth = reward.Prediction.CurrentRun.LastWellShopDepth
@@ -86,7 +83,15 @@ local function moveToNextRoom(previousState, reward, door)
     end
     -- Enter next room
     run.CurrentRoom = room
-    run.RoomCreations[room.Name] = (run.RoomCreations[room.Name] or 0) + 1
+
+    -- end of encounter
+	run.EncountersCompletedCache[room.Encounter.Name] = (run.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
+	GameState.EncountersCompletedCache[room.Encounter.Name] = (GameState.EncountersCompletedCache[room.Encounter.Name] or 0) + 1
+
+    -- At when doors unlock, the exits from this room are created
+    for _, exit in pairs(reward.Exits) do
+        run.RoomCreations[exit.Room.Name] = (run.RoomCreations[exit.Room.Name] or 0) + 1
+    end
     NextSeeds[1] = reward.Seed
     
     -- Restore the old GameState and return the new state
@@ -106,7 +111,7 @@ local function nextRooms(state, rCurrent, ci)
             reward.State = moveToNextRoom(rCurrent.State, reward, rCurrent.Door)
             reward.Seed = NextSeeds[1]
             reward.oMinimum = reward.EstimatedEndOfRoomOffset
-            reward.oNext = reward.oMinimum
+            reward.oNext = reward.oMinimum + state.oWiggleRoom
             if not requirements.SkipReward then
                 PickUpReward(reward.State.CurrentRun, state.Requirements.SelectUpgrade, reward)
             end
