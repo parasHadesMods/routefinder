@@ -110,7 +110,7 @@ local function nextRooms(state, rCurrent, ci)
             reward.RoomName = rCurrent.Door.Room.Name
             reward.State = moveToNextRoom(rCurrent.State, reward, rCurrent.Door)
             reward.Seed = NextSeeds[1]
-            reward.oMinimum = reward.EstimatedEndOfRoomOffset
+            reward.oMinimum = requirements.ForceMinimumOffset or reward.EstimatedEndOfRoomOffset
             reward.oNext = reward.oMinimum + state.oWiggleRoom
             if not requirements.SkipReward then
                 PickUpReward(reward.State.CurrentRun, state.Requirements.SelectUpgrade, reward)

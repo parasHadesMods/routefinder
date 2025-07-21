@@ -121,17 +121,21 @@ Display(meRoute)
 -- It might not be possible to get it before Meg if we haven't had a bag refill yet.
 -- We also want to avoid midshop in Tartarus because it will probably throw us off route.
 local secondSectionStates = {}
-local basicRequirements = NewRequirements(8, 16)
+local basicRequirements = NewRequirements(8, 18)
 basicRequirements.SelectUpgrade = SelectUpgrade
 for ci=8,11 do
   basicRequirements["C"..ci].Exit.Reward = Not("Shop")
 end
-for ci=10,16 do -- we can't get another meta reward in C8 or C9 because we've had too many; if bag has no boons they should refill by 16
+basicRequirements.C15.ForceMinimumOffset = 12 -- a lot of yapping can occur here, but we can reset using the well
+-- C8 and C9 are too early for another run reward
+-- C13 = endshop, C14 = meg, C15 = stairs, C16 = asphodel intro, C17 = next chance to get impending
+local possibleImpendingDoomRooms = { 10, 11, 12, 17 }
+for _, ci in ipairs(possibleImpendingDoomRooms) do
   local requirements = DeepCopyTable(basicRequirements)
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
     ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 16, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
+  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 18, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
   table.insert(secondSectionStates, state)
 end
 
