@@ -126,6 +126,7 @@ basicRequirements.SelectUpgrade = SelectUpgrade
 for ci=8,11 do
   basicRequirements["C"..ci].Exit.Reward = Not("Shop")
 end
+basicRequirements.C13.ExtraWiggleRoom = 1 -- Charon's groaning is sometimes unavoidable
 basicRequirements.C15.ForceMinimumOffset = 12 -- a lot of yapping can occur here, but we can reset using the well
 -- C8 and C9 are too early for another run reward
 -- C13 = endshop, C14 = meg, C15 = stairs, C16 = asphodel intro, C17 = next chance to get impending
