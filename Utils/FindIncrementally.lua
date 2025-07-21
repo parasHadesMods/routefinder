@@ -158,7 +158,14 @@ local function stateResults(state)
     return results
 end
 
-function FindIncrementally(states)
+Import "Utils/pepperfish.lua"
+local profiler = newProfiler()
+
+function FindIncrementally(states, profileFileName)
+    if profileFileName ~= nil then
+        profiler:start()
+    end
+
     local results = {}
     while #results == 0 do
         for _, state in pairs(states) do
@@ -168,5 +175,14 @@ function FindIncrementally(states)
             end
         end
     end
+
+    if profileFileName ~= nil then
+        profiler:stop()
+
+        local outfile = io.open( profileFileName, "w+" )
+        profiler:report( outfile )
+        outfile:close()
+    end
+
     return results
 end
