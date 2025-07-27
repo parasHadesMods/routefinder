@@ -1,3 +1,8 @@
 Import "Utils/SaveState.lua"
 
-SaveState({ CurrentRun = CurrentRun, GameState = GameState}, "saves/save_file.json")
+local prefix = ""
+if FilePrefix ~= nil then
+    prefix = FilePrefix .. "_"
+end
+
+SaveState({ CurrentRun = CurrentRun, GameState = GameState}, "saves/" .. prefix .. "save_file.json")

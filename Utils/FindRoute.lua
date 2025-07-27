@@ -118,12 +118,13 @@ function PickUpReward(run, requirements, reward)
     local traitData = GetProcessedTraitData({ Unit = run.Hero, TraitName = itemName, Rarity = rarity })
     local trait = DeepCopyTable( traitData )
     table.insert(run.Hero.Traits, trait)
+    run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
+    local oldRun = CurrentRun
+    CurrentRun = run
+    UpdateHeroTraitDictionary()
+    CurrentRun = oldRun
   end
-  run.LootTypeHistory[lootName] = (run.LootTypeHistory[lootName] or 0) + 1
-  local oldRun = CurrentRun
-  CurrentRun = run
-  UpdateHeroTraitDictionary()
-  CurrentRun = oldRun
+
 end
 
 function PredictRoomOptions( state, door, range )

@@ -121,7 +121,7 @@ Display(meRoute)
 -- It might not be possible to get it before Meg if we haven't had a bag refill yet.
 -- We also want to avoid midshop in Tartarus because it will probably throw us off route.
 local secondSectionStates = {}
-local basicRequirements = NewRequirements(8, 18)
+local basicRequirements = NewRequirements(8, 17)
 basicRequirements.SelectUpgrade = SelectUpgrade
 for ci=8,11 do
   basicRequirements["C"..ci].Exit.Reward = Not("Shop")
@@ -136,7 +136,7 @@ for _, ci in ipairs(possibleImpendingDoomRooms) do
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
     ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 18, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
+  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 17, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
   table.insert(secondSectionStates, state)
 end
 
@@ -144,3 +144,38 @@ local secondSectionResults = FindIncrementally(secondSectionStates)
 local c13Route = secondSectionResults[1]
 c13Route.C7.UpgradeOptions = meRoute.C7.UpgradeOptions
 Display(c13Route)
+secondSectionStates = nil -- don't need these anymore
+
+-- Third section. All we care about is avoiding Dio and getting 2-sack.
+local thirdSectionStates = {}
+local requirements = NewRequirements(18, 48)
+for ci=18,46 do
+  requirements["C"..ci].Exit.Reward = Not("DionysusUpgrade")
+end
+requirements.C24.Exit.Reward = nil -- C24 = Lernie, C25 = Stairs, C26 = elysium intro
+requirements.C25.ForceMinimumOffset = 12 -- well reset in stairs
+requirements.C25.Exit.Reward = nil
+requirements.C36.Exit.Reward = nil -- C36 = Heroes, C37 = Stairs, C38 = styx intro, C39 = styx hub
+requirements.C37.ForceMinimumOffset = 12 -- well reset in stairs
+requirements.C37.Exit.Reward = nil
+requirements.C38.Exit.Reward = nil
+requirements.C39.Exit.StyxMiniBoss = true
+-- need to force short tunnel / miniboss in 43 (not tony)
+-- requirements.C43.Room.RoomName = MatchesOne({ "D_MiniBoss04", "D_MiniBoss01" })
+requirements.C48.Room.RoomName = "D_Reprieve01" -- sack
+local thirdSectionResult = FindIncrementally({
+  SetupFindIncrementally(c13Route.C17.State.CurrentRun, c13Route.C17.State.GameState, c13Route.C17.Door, requirements, 17, 38, c13Route.C17.Seed, c13Route.C17.oMinimum, 1)
+})
+local thirdRoute = thirdSectionResult[1]
+thirdRoute.C17.UpgradeOptions = c13Route.C17.UpgradeOptions
+Display(thirdRoute)
+thirdSectionStates = nil
+
+-- Split out styx finding to reduce search space
+local finalSectionStates = {}
+local finalSectionResult = FindIncrementally({
+  SetupFindIncrementally(thirdRoute.C38.State.CurrentRun, thirdRoute.C38.State.GameState, thirdRoute.C38.Door, requirements, 38, 47, thirdRoute.C38.Seed, thirdRoute.C38.oMinimum, 1)
+})
+local finalRoute = finalSectionResult[1]
+finalRoute.C38.UpgradeOptions = finalRoute.C38.UpgradeOptions
+Display(finalRoute)
