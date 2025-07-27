@@ -3,3 +3,5 @@
 *.csv
 *.sav
 *.zip
+/assets
+/saves
