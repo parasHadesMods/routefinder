@@ -2,7 +2,7 @@ use druid::widget::{Button, Flex, Label, Scroll, TextBox};
 use druid::{Widget, WidgetExt, Selector, Event, EventCtx, Env, LifeCycle, LifeCycleCtx, UpdateCtx, Rect};
 use druid::widget::Controller;
 use std::sync::{Arc, Mutex};
-use crate::gui::AppState;
+use crate::fresh_file_finder::AppState;
 
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
 pub const CALCULATE_PRESSED: Selector<()> = Selector::new("calculate-pressed");

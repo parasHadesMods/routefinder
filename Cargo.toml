@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "fresh-file-finder"
-path = "src/bin/gui.rs"
+path = "src/bin/fresh-file-finder.rs"
 
 [dependencies]
 rand = "0.8.4"
