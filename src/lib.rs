@@ -3,6 +3,7 @@
 
 pub mod error;
 pub mod fresh_file_finder;
+pub mod sack_finder;
 pub mod luabins;
 pub mod read;
 pub mod rng;

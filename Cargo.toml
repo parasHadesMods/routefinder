@@ -16,6 +16,10 @@ path = "src/main.rs"
 name = "fresh-file-finder"
 path = "src/bin/fresh-file-finder.rs"
 
+[[bin]]
+name = "sack-finder"
+path = "src/bin/sack-finder.rs"
+
 [dependencies]
 rand = "0.8.4"
 rand_core = "0.6.3"
