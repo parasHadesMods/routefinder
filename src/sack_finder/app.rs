@@ -10,6 +10,10 @@ pub struct AppState {
     pub soul: String,
     pub strike: String,
     pub eclipse: String,
+    pub affluence: String,
+    pub shot: String,
+    pub flourish: String,
+    pub defiance: String,
     pub text_output: String,
 }
 
@@ -24,6 +28,10 @@ impl Default for AppState {
             soul: String::new(),
             strike: String::new(),
             eclipse: String::new(),
+            affluence: "Not needed.".to_string(), // Prefilled, uneditable
+            shot: String::new(),
+            flourish: String::new(),
+            defiance: "1".to_string(), // Prefilled, uneditable
             text_output: "Enter percentage values for each field.\n".to_string(),
         }
     }
@@ -37,7 +45,9 @@ impl AppState {
         self.is_lunge_valid() && 
         self.is_soul_valid() && 
         self.is_strike_valid() && 
-        self.is_eclipse_valid()
+        self.is_eclipse_valid() &&
+        self.is_shot_valid() &&
+        self.is_flourish_valid()
     }
     
     pub fn is_assault_valid(&self) -> bool {
@@ -96,6 +106,22 @@ impl AppState {
         }
     }
     
+    pub fn is_shot_valid(&self) -> bool {
+        if let Ok(value) = self.shot.parse::<f64>() {
+            value >= 30.0 && value <= 40.0
+        } else {
+            false
+        }
+    }
+    
+    pub fn is_flourish_valid(&self) -> bool {
+        if let Ok(value) = self.flourish.parse::<f64>() {
+            value >= 30.0 && value <= 60.0
+        } else {
+            false
+        }
+    }
+    
     pub fn clear(&mut self) {
         *self = Self::default();
     }
@@ -129,6 +155,14 @@ impl AppState {
         
         if let Ok(eclipse_val) = self.eclipse.parse::<f64>() {
             output.push_str(&format!("eclipse,{},{:.2},{:.2},{:.2}\n", 28, 0.5, 0.8, eclipse_val / 100.0));
+        }
+        
+        if let Ok(shot_val) = self.shot.parse::<f64>() {
+            output.push_str(&format!("shot,{},{:.2},{:.2},{:.2}\n", 32, 0.3, 0.4, shot_val / 100.0));
+        }
+        
+        if let Ok(flourish_val) = self.flourish.parse::<f64>() {
+            output.push_str(&format!("flourish,{},{:.2},{:.2},{:.2}\n", 34, 0.3, 0.6, flourish_val / 100.0));
         }
         
         output

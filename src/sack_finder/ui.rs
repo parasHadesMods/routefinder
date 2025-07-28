@@ -39,6 +39,10 @@ fn build_input_panel() -> impl Widget<AppState> {
         .with_child(create_input_field("Soul:", AppState::soul, true))
         .with_child(create_input_field("Strike:", AppState::strike, true))
         .with_child(create_input_field("Eclipse:", AppState::eclipse, true))
+        .with_child(create_input_field("Affluence:", AppState::affluence, false))
+        .with_child(create_input_field("Shot:", AppState::shot, true))
+        .with_child(create_input_field("Flourish:", AppState::flourish, true))
+        .with_child(create_input_field("Defiance:", AppState::defiance, false))
         .with_child(build_button_panel())
         .padding(10.0)
 }
