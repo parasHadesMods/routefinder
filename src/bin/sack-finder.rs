@@ -55,7 +55,7 @@ fn main() -> Result<()> {
     
     let main_window = WindowDesc::new(build_ui().controller(AppController))
         .title("Sack Finder")
-        .window_size((600.0, 600.0));
+        .window_size((1000.0, 700.0));
     
     let initial_state = AppState::default();
     

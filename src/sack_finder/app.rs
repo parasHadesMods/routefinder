@@ -15,6 +15,10 @@ pub struct AppState {
     pub flourish: String,
     pub defiance: String,
     pub text_output: String,
+    pub save_file_path: String,
+    pub scripts_dir_path: String,
+    pub script_file: String,
+    pub found_seed: Option<i32>,
 }
 
 impl Default for AppState {
@@ -28,11 +32,15 @@ impl Default for AppState {
             soul: String::new(),
             strike: String::new(),
             eclipse: String::new(),
-            affluence: "Not needed.".to_string(), // Prefilled, uneditable
+            affluence: "N/A".to_string(), // Prefilled, uneditable
             shot: String::new(),
             flourish: String::new(),
             defiance: "1".to_string(), // Prefilled, uneditable
             text_output: "Enter percentage values for each field.\n".to_string(),
+            save_file_path: "FreshFile.sav".to_string(),
+            scripts_dir_path: "~/workspace/hades/routefinder/assets/Scripts/".to_string(),
+            script_file: "SackRouteIncrementally.lua".to_string(),
+            found_seed: None,
         }
     }
 }
@@ -123,7 +131,14 @@ impl AppState {
     }
     
     pub fn clear(&mut self) {
+        let save_file_path = self.save_file_path.clone();
+        let scripts_dir_path = self.scripts_dir_path.clone();
+        let script_file = self.script_file.clone();
         *self = Self::default();
+        self.save_file_path = save_file_path;
+        self.scripts_dir_path = scripts_dir_path;
+        self.script_file = script_file;
+        self.found_seed = None;
     }
     
     pub fn generate_range_format(&self) -> String {

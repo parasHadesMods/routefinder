@@ -20,7 +20,7 @@ fn create_input_field(label: &str, lens: impl druid::Lens<AppState, String> + 's
 }
 
 pub fn build_ui() -> impl Widget<AppState> {
-    let top_panel = build_input_panel();
+    let top_panel = build_top_config_panel();
     let bottom_panel = build_bottom_panel();
     
     Flex::column()
@@ -68,8 +68,69 @@ fn build_button_panel() -> impl Widget<AppState> {
 }
 
 fn build_bottom_panel() -> impl Widget<AppState> {
-    Scroll::new(
+    let text_display = Scroll::new(
         Label::new(|data: &AppState, _env: &_| data.text_output.clone())
             .padding(10.0)
-    ).expand()
+    ).expand();
+    
+    let input_panel = build_input_panel()
+        .fix_width(200.0);
+
+    Flex::row()
+        .with_flex_child(text_display, 1.0)
+        .with_child(input_panel)
+        .must_fill_main_axis(true)
+        .expand()
+}
+
+fn build_top_config_panel() -> impl Widget<AppState> {
+    Flex::column()
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Save File Path:").fix_width(120.0))
+                .with_flex_child(
+                    TextBox::new()
+                        .lens(AppState::save_file_path)
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
+        )
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Scripts Directory:").fix_width(120.0))
+                .with_flex_child(
+                    TextBox::new()
+                        .lens(AppState::scripts_dir_path)
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
+        )
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Script File:").fix_width(120.0))
+                .with_flex_child(
+                    TextBox::new()
+                        .lens(AppState::script_file)
+                        .expand_width(),
+                    1.0
+                )
+                .padding(5.0)
+        )
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Found Seed:").fix_width(120.0))
+                .with_child(
+                    Label::new(|data: &AppState, _env: &_| {
+                        match data.found_seed {
+                            Some(seed) => seed.to_string(),
+                            None => "None".to_string(),
+                        }
+                    })
+                    .expand_width()
+                )
+                .padding(5.0)
+        )
+        .padding(10.0)
 }
