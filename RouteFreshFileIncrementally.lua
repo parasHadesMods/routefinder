@@ -136,13 +136,12 @@ for _, ci in ipairs(possibleImpendingDoomRooms) do
   requirements["C"..ci].Room.UpgradeOptions = OneMatches({
     ItemName = "AresLongCurseTrait"
   })
-  local state = SetupFindIncrementally(meRoute.C7.State.CurrentRun, meRoute.C7.State.GameState, meRoute.C7.Door, requirements, 7, 17, meRoute.C7.Seed, meRoute.C7.oMinimum, 1)
+  local state = ResumeFindIncrementally(meRoute.C7, requirements, 7, 17, 1)
   table.insert(secondSectionStates, state)
 end
 
 local secondSectionResults = FindIncrementally(secondSectionStates)
 local c13Route = secondSectionResults[1]
-c13Route.C7.UpgradeOptions = meRoute.C7.UpgradeOptions
 Display(c13Route)
 secondSectionStates = nil -- don't need these anymore
 
@@ -161,21 +160,20 @@ requirements.C37.Exit.Reward = nil
 requirements.C38.Exit.Reward = nil
 requirements.C39.Exit.StyxMiniBoss = true
 -- need to force short tunnel / miniboss in 43 (not tony)
+requirements.C42.Exit.RoomName = MatchesOne({ "D_MiniBoss01", "D_MiniBoss04"})
 -- requirements.C43.Room.RoomName = MatchesOne({ "D_MiniBoss04", "D_MiniBoss01" })
 requirements.C48.Room.RoomName = "D_Reprieve01" -- sack
 local thirdSectionResult = FindIncrementally({
-  SetupFindIncrementally(c13Route.C17.State.CurrentRun, c13Route.C17.State.GameState, c13Route.C17.Door, requirements, 17, 38, c13Route.C17.Seed, c13Route.C17.oMinimum, 1)
+  ResumeFindIncrementally(c13Route.C17, requirements, 17, 38, 1)
 })
 local thirdRoute = thirdSectionResult[1]
-thirdRoute.C17.UpgradeOptions = c13Route.C17.UpgradeOptions
 Display(thirdRoute)
 thirdSectionStates = nil
 
 -- Split out styx finding to reduce search space
 local finalSectionStates = {}
 local finalSectionResult = FindIncrementally({
-  SetupFindIncrementally(thirdRoute.C38.State.CurrentRun, thirdRoute.C38.State.GameState, thirdRoute.C38.Door, requirements, 38, 47, thirdRoute.C38.Seed, thirdRoute.C38.oMinimum, 1)
+  ResumeFindIncrementally(thirdRoute.C38, requirements, 38, 43, 1)
 })
 local finalRoute = finalSectionResult[1]
-finalRoute.C38.UpgradeOptions = finalRoute.C38.UpgradeOptions
 Display(finalRoute)

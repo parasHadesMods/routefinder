@@ -7,6 +7,21 @@ Import "Utils/FindRoute.lua"
 -- i = index, into an array
 -- _s = array of (eg. rs = array of rooms, cs = array of chamber numbers, etc.)
 
+function ResumeFindIncrementally(rResumeFrom, requirements, cStart, cEnd, oWiggleRoom)
+    local state = SetupFindIncrementally(
+        rResumeFrom.State.CurrentRun,
+        rResumeFrom.State.GameState,
+        rResumeFrom.Door,
+        requirements,
+        cStart,
+        cEnd,
+        rResumeFrom.Seed,
+        rResumeFrom.oMinimum,
+        oWiggleRoom)
+    state.rssReached[cStart].UpgradeOptions = rResumeFrom.UpgradeOptions
+    return state
+end
+
 function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd, seed, oStart, oWiggleRoom)
     local state = {}
     -- validate
