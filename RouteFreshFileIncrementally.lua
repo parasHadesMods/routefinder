@@ -162,7 +162,7 @@ requirements.C39.Exit.StyxMiniBoss = true
 -- need to force short tunnel / miniboss in 43 (not tony)
 requirements.C42.Exit.RoomName = MatchesOne({ "D_MiniBoss01", "D_MiniBoss04"})
 -- requirements.C43.Room.RoomName = MatchesOne({ "D_MiniBoss04", "D_MiniBoss01" })
-requirements.C48.Room.RoomName = "D_Reprieve01" -- sack
+requirements.C47.Exit.RoomName = "D_Reprieve01" -- sack
 local thirdSectionResult = FindIncrementally({
   ResumeFindIncrementally(c13Route.C17, requirements, 17, 38, 1)
 })
