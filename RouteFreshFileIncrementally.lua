@@ -173,7 +173,7 @@ thirdSectionStates = nil
 -- Split out styx finding to reduce search space
 local finalSectionStates = {}
 local finalSectionResult = FindIncrementally({
-  ResumeFindIncrementally(thirdRoute.C38, requirements, 38, 43, 1)
+  ResumeFindIncrementally(thirdRoute.C38, requirements, 38, 48, 1)
 })
 local finalRoute = finalSectionResult[1]
 Display(finalRoute)
