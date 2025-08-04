@@ -59,7 +59,7 @@ function SetupFindIncrementally(run, gameState, door, requirements, cStart, cEnd
     return state
 end
 
-local function moveToNextRoom(previousState, reward, door)
+function moveToNextRoom(previousState, reward, door)
     -- Leave previous room and update history to reflect what happened
 
     local run = DeepCopyTable(previousState.CurrentRun)
@@ -176,25 +176,32 @@ end
 Import "Utils/pepperfish.lua"
 local profiler = newProfiler()
 
-function FindIncrementally(states, profileFileName)
-    if profileFileName ~= nil then
+function FindIncrementally(states, args)
+    local args = args or {}
+    args.MaxOffset = args.MaxOffset or 50
+    if args.ProfileFileName ~= nil then
         profiler:start()
     end
 
     local results = {}
-    while #results == 0 do
+    local totalOffset = 0
+    while #results == 0 and totalOffset <= args.MaxOffset do
         for _, state in pairs(states) do
             stateIncrement(state)
             for _, result in pairs(stateResults(state)) do
                 table.insert(results, result)
             end
         end
+        totalOffset = totalOffset + 1
+    end
+    if totalOffset > args.MaxOffset then
+        print("Stopped early after " .. args.MaxOffset)
     end
 
-    if profileFileName ~= nil then
+    if args.ProfileFileName ~= nil then
         profiler:stop()
 
-        local outfile = io.open( profileFileName, "w+" )
+        local outfile = io.open( args.ProfileFileName, "w+" )
         profiler:report( outfile )
         outfile:close()
     end

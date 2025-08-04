@@ -1,5 +1,5 @@
 use routefinder::error::Error;
-use routefinder::fresh_file_finder::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED, ADVANCE_PRESSED, CLEAR_PRESSED}, app::ButtonPress};
+use routefinder::fresh_file_finder::{AppState, build_ui, ui::{BUTTON_PRESSED, CALCULATE_PRESSED, CLEAR_PRESSED, OFF_ROUTE_PRESSED, OFF_ROUTE_UP_PRESSED, OFF_ROUTE_DOWN_PRESSED, OFF_ROUTE_REROUTE_PRESSED, EXIT_OFF_ROUTE_PRESSED}, app::ButtonPress};
 use druid::{AppLauncher, WindowDesc, EventCtx, Event, Env, WidgetExt, ExtEventSink, Target, Selector};
 use druid::widget::Controller;
 use std::fs::File;
@@ -49,13 +49,31 @@ fn main() -> Result<()> {
                         data.text_output = format!("Error: {}", e);
                     }
                 }
-                Event::Command(cmd) if cmd.is(ADVANCE_PRESSED) => {
-                    if let Err(e) = execute_advance(data, ctx.get_external_handle()) {
+                Event::Command(cmd) if cmd.is(CLEAR_PRESSED) => {
+                    data.clear();
+                }
+                Event::Command(cmd) if cmd.is(OFF_ROUTE_PRESSED) => {
+                    data.enter_off_route_mode();
+                }
+                Event::Command(cmd) if cmd.is(EXIT_OFF_ROUTE_PRESSED) => {
+                    data.exit_off_route_mode();
+                }
+                Event::Command(cmd) if cmd.is(OFF_ROUTE_UP_PRESSED) => {
+                    data.adjust_offset_off_by(1);
+                    if let Err(e) = execute_off_route_preview(data, ctx.get_external_handle()) {
                         data.text_output.push_str(&format!("\nError: {}\n", e));
                     }
                 }
-                Event::Command(cmd) if cmd.is(CLEAR_PRESSED) => {
-                    data.clear();
+                Event::Command(cmd) if cmd.is(OFF_ROUTE_DOWN_PRESSED) => {
+                    data.adjust_offset_off_by(-1);
+                    if let Err(e) = execute_off_route_preview(data, ctx.get_external_handle()) {
+                        data.text_output.push_str(&format!("\nError: {}\n", e));
+                    }
+                }
+                Event::Command(cmd) if cmd.is(OFF_ROUTE_REROUTE_PRESSED) => {
+                    if let Err(e) = execute_off_route_reroute(data, ctx.get_external_handle()) {
+                        data.text_output.push_str(&format!("\nError: {}\n", e));
+                    }
                 }
                 Event::Command(cmd) if cmd.is(OUTPUT_UPDATE) => {
                     if let Some(text) = cmd.get::<String>(OUTPUT_UPDATE) {
@@ -112,29 +130,6 @@ fn execute_calculate(data: &mut AppState, event_sink: ExtEventSink) -> Result<()
     Ok(())
 }
 
-fn execute_advance(data: &mut AppState, event_sink: ExtEventSink) -> Result<()> {
-    // Clear previous output
-    data.text_output.clear();
-    
-    // Increment offset by 1
-    data.offset += 1;
-    data.text_output.push_str(&format!("Advanced to offset: {}\n", data.offset));
-    
-    // Get the found seed - advance should only be called when we have a seed
-    let seed = data.found_seed.ok_or_else(|| Error::from("No seed found - cannot advance".to_string()))?;
-    
-    // Clone data needed for background thread
-    let script_file = data.script_file.clone();
-    let save_file_path = data.save_file_path.clone();
-    let scripts_dir_path = data.scripts_dir_path.clone();
-    let offset = data.offset as i32;
-    
-    std::thread::spawn(move || {
-        execute_advance_background(script_file, save_file_path, scripts_dir_path, seed, offset, event_sink);
-    });
-    
-    Ok(())
-}
 
 fn execute_calculate_background(
     button_history: Vec<ButtonPress>,
@@ -266,24 +261,78 @@ fn execute_calculate_background(
     event_sink.submit_command(CALCULATION_COMPLETE, (), Target::Auto).ok();
 }
 
-fn execute_advance_background(
+
+fn extract_seed_from_output(output: &str) -> Result<i32> {
+    for line in output.lines() {
+        if line.contains("Candidate") && line.contains("seed") {
+            if let Some(seed_part) = line.split("seed ").nth(1) {
+                if let Ok(seed) = seed_part.trim().parse::<i32>() {
+                    return Ok(seed);
+                }
+            }
+        }
+    }
+    Err(Error::from(format!("Could not extract seed from reverse-rng output: {}", output)))
+}
+
+fn execute_off_route_preview(data: &mut AppState, event_sink: ExtEventSink) -> Result<()> {
+    // Validate chamber input
+    let chamber: i32 = data.off_route_chamber.parse()
+        .map_err(|_| Error::from("Invalid chamber number".to_string()))?;
+    
+    // Clone data for background thread
+    let script_file = data.script_file.clone();
+    let save_file_path = data.save_file_path.clone(); 
+    let scripts_dir_path = data.scripts_dir_path.clone();
+    let offset_off_by = data.offset_off_by;
+    
+    std::thread::spawn(move || {
+        execute_off_route_preview_background(
+            script_file, save_file_path, scripts_dir_path, 
+            chamber, offset_off_by, event_sink
+        );
+    });
+    
+    Ok(())
+}
+
+fn execute_off_route_reroute(data: &mut AppState, event_sink: ExtEventSink) -> Result<()> {
+    // Similar to preview but uses ActualOffset instead of OffsetOffBy
+    let chamber: i32 = data.off_route_chamber.parse()
+        .map_err(|_| Error::from("Invalid chamber number".to_string()))?;
+    
+    let script_file = data.script_file.clone();
+    let save_file_path = data.save_file_path.clone();
+    let scripts_dir_path = data.scripts_dir_path.clone(); 
+    let actual_offset = data.offset_off_by;
+    
+    std::thread::spawn(move || {
+        execute_off_route_reroute_background(
+            script_file, save_file_path, scripts_dir_path,
+            chamber, actual_offset, event_sink
+        );
+    });
+    
+    Ok(())
+}
+
+fn execute_off_route_preview_background(
     script_file: String,
-    save_file_path: String,
+    save_file_path: String, 
     scripts_dir_path: String,
-    seed: i32,
-    offset: i32,
+    chamber: i32,
+    offset_off_by: i32,
     event_sink: ExtEventSink,
 ) {
-    // Execute route analysis with the existing seed and new offset
-    event_sink.submit_command(OUTPUT_UPDATE, "\n=== Route Analysis (Advanced) ===\n".to_string(), Target::Auto).ok();
+    event_sink.submit_command(OUTPUT_UPDATE, "\n=== Is this yours? ===\n".to_string(), Target::Auto).ok();
     
     let expanded_scripts_dir = expand_tilde(&scripts_dir_path);
     let mut route_child = match Command::new("cargo")
-        .args(&["run", "--release", "--bin", "routefinder", "--", "run", &script_file, 
+        .args(&["run", "--release", "--bin", "routefinder", "--", "run", &script_file,
                "--save-file", &save_file_path,
                "--scripts-dir", &expanded_scripts_dir,
-               "--lua-var", &format!("AthenaSeed={}", seed),
-               "--lua-var", &format!("AthenaOffset={}", offset - 1)])
+               "--lua-var", &format!("FirstChamberOffRoute={}", chamber),
+               "--lua-var", &format!("OffsetOffBy={}", offset_off_by)])
         .stdout(Stdio::piped())
         .spawn() {
         Ok(child) => child,
@@ -316,15 +365,51 @@ fn execute_advance_background(
     event_sink.submit_command(CALCULATION_COMPLETE, (), Target::Auto).ok();
 }
 
-fn extract_seed_from_output(output: &str) -> Result<i32> {
-    for line in output.lines() {
-        if line.contains("Candidate") && line.contains("seed") {
-            if let Some(seed_part) = line.split("seed ").nth(1) {
-                if let Ok(seed) = seed_part.trim().parse::<i32>() {
-                    return Ok(seed);
-                }
+fn execute_off_route_reroute_background(
+    script_file: String,
+    save_file_path: String,
+    scripts_dir_path: String, 
+    chamber: i32,
+    actual_offset: i32,
+    event_sink: ExtEventSink,
+) {
+    event_sink.submit_command(OUTPUT_UPDATE, "\n=== Off Route Reroute ===\n".to_string(), Target::Auto).ok();
+    
+    let expanded_scripts_dir = expand_tilde(&scripts_dir_path);
+    let mut route_child = match Command::new("cargo")
+        .args(&["run", "--release", "--bin", "routefinder", "--", "run", &script_file,
+               "--save-file", &save_file_path, 
+               "--scripts-dir", &expanded_scripts_dir,
+               "--lua-var", &format!("FirstChamberOffRoute={}", chamber),
+               "--lua-var", &format!("ActualOffset={}", actual_offset)])
+        .stdout(Stdio::piped())
+        .spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+            return;
+        }
+    };
+    
+    let stdout = route_child.stdout.take().unwrap();
+    let reader = BufReader::new(stdout);
+    
+    for line in reader.lines() {
+        match line {
+            Ok(line_str) => {
+                event_sink.submit_command(OUTPUT_UPDATE, format!("{}\n", line_str), Target::Auto).ok();
+            }
+            Err(e) => {
+                event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+                return;
             }
         }
     }
-    Err(Error::from(format!("Could not extract seed from reverse-rng output: {}", output)))
+    
+    if let Err(e) = route_child.wait() {
+        event_sink.submit_command(CALCULATION_ERROR, e.to_string(), Target::Auto).ok();
+        return;
+    }
+    
+    event_sink.submit_command(CALCULATION_COMPLETE, (), Target::Auto).ok();
 }

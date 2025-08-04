@@ -6,6 +6,7 @@ pub mod fresh_file_finder;
 pub mod sack_finder;
 pub mod luabins;
 pub mod read;
+pub mod write;
 pub mod rng;
 pub mod save;
 pub mod reverse_rng;

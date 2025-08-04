@@ -4,6 +4,7 @@ mod read;
 mod reverse_rng;
 mod rng;
 mod save;
+mod write;
 use clap::{Parser, Subcommand};
 use libm::ldexp;
 use lz4;
@@ -141,6 +142,38 @@ fn run_script(route_finder_script: PathBuf, save_file_path: PathBuf, hades_scrip
         })?;
         lua.globals().set("randomgaussian", randomgaussian)?;
 
+        let luabins_read = scope.create_function(|lua, filename: String| -> Result<Value, mlua::Error> {
+            let file_path = std::path::Path::new(&filename);
+            let file_data = std::fs::read(file_path)
+                .map_err(|e| mlua::Error::runtime(format!("Failed to read file '{}': {}", filename, e)))?;
+            
+            let mut data_slice = file_data.as_slice();
+            match luabins::load(lua, &mut data_slice, format!("luabins_read {}", filename)) {
+                Ok(values) => {
+                    if values.len() == 1 {
+                        Ok(values.into_iter().next().unwrap())
+                    } else {
+                        Ok(Value::Table(lua.create_table_from(values.into_iter().enumerate())?))
+                    }
+                },
+                Err(e) => Err(mlua::Error::runtime(format!("Failed to parse luabins file '{}': {}", filename, e)))
+            }
+        })?;
+        lua.globals().set("LuabinsRead", luabins_read)?;
+
+        let luabins_write = scope.create_function(|_, (filename, table): (String, Value)| -> Result<(), mlua::Error> {
+            let file_path = std::path::Path::new(&filename);
+            let mut data = Vec::new();
+            let values = vec![table];
+            match luabins::save(&mut data, values) {
+                Ok(()) => {
+                    std::fs::write(file_path, data)
+                        .map_err(|e| mlua::Error::runtime(format!("Failed to write file '{}': {}", filename, e)))
+                },
+                Err(e) => Err(mlua::Error::runtime(format!("Failed to serialize luabins data for '{}': {}", filename, e)))
+            }
+        })?;
+        lua.globals().set("LuabinsWrite", luabins_write)?;
 
         // Load lua files
         load_lua_file(&lua, &hades_scripts_dir.join("Main.lua"))?;

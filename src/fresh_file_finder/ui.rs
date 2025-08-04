@@ -1,14 +1,20 @@
-use druid::widget::{Button, Flex, Label, Scroll, TextBox};
+use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
 use druid::{Widget, WidgetExt, Selector, Event, EventCtx, Env, LifeCycle, LifeCycleCtx, UpdateCtx, Rect};
 use druid::widget::Controller;
 use std::sync::{Arc, Mutex};
-use crate::fresh_file_finder::AppState;
+use crate::fresh_file_finder::{AppState, Mode};
 
 pub const BUTTON_PRESSED: Selector<String> = Selector::new("button-pressed");
 pub const CALCULATE_PRESSED: Selector<()> = Selector::new("calculate-pressed");
-pub const ADVANCE_PRESSED: Selector<()> = Selector::new("advance-pressed");
 pub const CLEAR_PRESSED: Selector<()> = Selector::new("clear-pressed");
 pub const SCROLL_TO_BOTTOM: Selector<()> = Selector::new("scroll-to-bottom");
+
+// New selectors for off-route functionality
+pub const OFF_ROUTE_PRESSED: Selector<()> = Selector::new("off-route-pressed");
+pub const OFF_ROUTE_UP_PRESSED: Selector<()> = Selector::new("off-route-up-pressed");
+pub const OFF_ROUTE_DOWN_PRESSED: Selector<()> = Selector::new("off-route-down-pressed");
+pub const OFF_ROUTE_REROUTE_PRESSED: Selector<()> = Selector::new("off-route-reroute-pressed");
+pub const EXIT_OFF_ROUTE_PRESSED: Selector<()> = Selector::new("exit-off-route-pressed");
 
 // Shared state to track if any text field has focus
 type TextFieldFocusState = Arc<Mutex<bool>>;
@@ -70,11 +76,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for KeyboardController {
                                 ctx.submit_command(CALCULATE_PRESSED);
                                 ctx.set_handled();
                             }
-                            "A" => {
-                                ctx.submit_command(ADVANCE_PRESSED);
-                                ctx.set_handled();
-                            }
                             _ => {}
+                        }
+                    }
+                    druid::keyboard_types::Key::ArrowUp => {
+                        if data.mode == Mode::OffRoute {
+                            ctx.submit_command(OFF_ROUTE_UP_PRESSED);
+                            ctx.set_handled();
+                        }
+                    }
+                    druid::keyboard_types::Key::ArrowDown => {
+                        if data.mode == Mode::OffRoute {
+                            ctx.submit_command(OFF_ROUTE_DOWN_PRESSED);
+                            ctx.set_handled();
                         }
                     }
                     _ => {}
@@ -103,6 +117,30 @@ impl<W: Widget<AppState>> Controller<AppState, W> for TextFieldController {
 
 struct ScrollController {
     previous_text_len: usize,
+}
+
+struct NumericTextBoxController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for NumericTextBoxController {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
+        if let Event::KeyDown(key_event) = event {
+            if let druid::keyboard_types::Key::Character(ref c) = key_event.key {
+                // Allow only numeric characters and backspace
+                if !c.chars().all(char::is_numeric) && c != "\u{8}" { // Allow backspace
+                    ctx.set_handled();
+                    return;
+                }
+            }
+        }
+        child.event(ctx, event, data, env);
+    }
 }
 
 impl ScrollController {
@@ -237,6 +275,71 @@ fn build_bottom_panel() -> impl Widget<AppState> {
 }
 
 fn build_button_panel() -> impl Widget<AppState> {
+    // Conditionally show normal or off-route panel based on mode
+    Either::new(
+        |data: &AppState, _env| data.mode == Mode::OffRoute,
+        build_off_route_panel(),
+        build_normal_button_panel()
+    )
+}
+
+fn build_off_route_panel() -> impl Widget<AppState> {
+    Flex::column()
+        .cross_axis_alignment(druid::widget::CrossAxisAlignment::Fill)
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Chamber:"))
+                .with_child(
+                    TextBox::new()
+                        .lens(AppState::off_route_chamber)
+                        .controller(NumericTextBoxController)
+                )
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Flex::row()
+                .with_child(Label::new("Offset Off By:"))
+                .with_child(
+                    Label::new(|data: &AppState, _env: &_| {
+                        data.offset_off_by.to_string()
+                    })
+                )
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Flex::row()
+                .with_child(
+                    Button::new("↑ Up")
+                        .on_click(|ctx, _data, _env| {
+                            ctx.submit_command(OFF_ROUTE_UP_PRESSED);
+                        })
+                )
+                .with_child(
+                    Button::new("↓ Down")  
+                        .on_click(|ctx, _data, _env| {
+                            ctx.submit_command(OFF_ROUTE_DOWN_PRESSED);
+                        })
+                )
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Button::new("Reroute!")
+                .on_click(|ctx, _data, _env| {
+                    ctx.submit_command(OFF_ROUTE_REROUTE_PRESSED);
+                })
+                .padding((0.0, 5.0))
+        )
+        .with_child(
+            Button::new("← Back")
+                .on_click(|ctx, _data, _env| {
+                    ctx.submit_command(EXIT_OFF_ROUTE_PRESSED);
+                })
+                .padding((0.0, 5.0))
+        )
+        .with_flex_spacer(1.0)
+}
+
+fn build_normal_button_panel() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(druid::widget::CrossAxisAlignment::Fill)
         .with_child(create_button_with_underlined_first_letter("Top"))
@@ -252,11 +355,10 @@ fn build_button_panel() -> impl Widget<AppState> {
                 .padding((0.0, 5.0))
         )
         .with_child(
-            Button::new("A\u{0332}dvance")
-                .on_click(|_ctx, _data, _env| {
-                    _ctx.submit_command(ADVANCE_PRESSED);
+            Button::new("Off Route!")
+                .on_click(|ctx, _data, _env| {
+                    ctx.submit_command(OFF_ROUTE_PRESSED);
                 })
-                .disabled_if(|data: &AppState, _env| data.found_seed.is_none())
                 .padding((0.0, 5.0))
         )
         .with_child(

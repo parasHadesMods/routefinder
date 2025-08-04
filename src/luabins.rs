@@ -1,4 +1,4 @@
-use super::read;
+use super::{read, write};
 
 use mlua::{Lua, Value};
 use std::convert::TryInto;
@@ -98,4 +98,69 @@ pub fn load<'lua>(
         vec.push(value);
     }
     Ok(vec)
+}
+
+fn save_string(savestate: &mut Vec<u8>, string: mlua::String) {
+    let str_bytes = string.as_bytes();
+    write::u32(savestate, str_bytes.len() as u32);
+    write::bytes(savestate, str_bytes);
+}
+
+fn save_table(savestate: &mut Vec<u8>, table: mlua::Table) -> Result<(), String> {
+    let total_size = table.clone().pairs::<Value, Value>().count() as i32;
+    let array_size = std::cmp::min(total_size, table.len().map_err(|_| "table len".to_string())? as i32);
+    write::i32(savestate, array_size);
+    let hash_size = std::cmp::max(0, total_size - array_size);
+    write::i32(savestate, hash_size);
+    for pair in table.pairs::<Value, Value>() {
+        let (key, value) = pair.map_err(|_| "table pair".to_string())?;
+        save_value(savestate, key)?;
+        save_value(savestate, value)?;
+    }
+    Ok(())
+}
+
+fn save_value(savestate: &mut Vec<u8>, value: Value) -> Result<(), String> {
+    match value {
+        Value::Nil => {
+            write::byte(savestate, LUABINS_CNIL);
+            Ok(())
+        },
+        Value::Boolean(boolean_value) => {
+            if boolean_value {
+                write::byte(savestate, LUABINS_CTRUE)
+            } else {
+                write::byte(savestate, LUABINS_CFALSE)
+            }
+            Ok(())
+        },
+        Value::Integer(integer_value) => {
+            write::byte(savestate, LUABINS_CNUMBER);
+            write::f64(savestate, integer_value as f64);
+            Ok(())
+        },
+        Value::Number(number_value) => {
+            write::byte(savestate, LUABINS_CNUMBER);
+            write::f64(savestate, number_value);
+            Ok(())
+        },
+        Value::String(string_value) => {
+            write::byte(savestate, LUABINS_CSTRING);
+            save_string(savestate, string_value);
+            Ok(())
+        },
+        Value::Table(table_value) => {
+            write::byte(savestate, LUABINS_CTABLE);
+            save_table(savestate, table_value)
+        },
+        _ => Ok(()),
+    }
+}
+
+pub fn save(savestate: &mut Vec<u8>, values: Vec<Value>) -> Result<(), String> {
+    write::byte(savestate, values.len() as u8);
+    for value in values.into_iter() {
+        save_value(savestate, value)?;
+    }
+    Ok(())
 }

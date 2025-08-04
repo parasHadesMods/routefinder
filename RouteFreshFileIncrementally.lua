@@ -1,3 +1,4 @@
+Import "Utils/Checkpoint.lua"
 Import "Utils/FindIncrementally.lua"
 Import "Utils/LazyDeepCopyTable.lua"
 DeepCopyTable = LazyDeepCopyTable
@@ -89,14 +90,10 @@ c2ExitDoor.Room.RewardStoreName = "MetaProgress"
 
 CurrentRun.CurrentRoom = C2Door.Room
 
-local results = FindIncrementally({
-  SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAresFirst, 2, 7, AthenaSeed, AthenaOffset),
-  SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaSeed, AthenaOffset)
-})
-
-function Display(route)
+function Display(route, args)
+  local args = args or {}
   local display = {}
-  for ci=1,50 do
+  for ci=(args.Start or 1),50 do
     local thisRoom = route["C" .. ci]
     local nextRoom = route["C" .. (ci + 1)]
 
@@ -108,19 +105,38 @@ function Display(route)
       end
       current.Cast = nextRoom.Uses - thisRoom.oMinimum
       current.Door = thisRoom.Door.Room.ForceLootName or thisRoom.Door.Room.ChosenRewardType
+      current.Seed = thisRoom.Seed
+      local enemies = nil
+      if thisRoom.Enemies ~= nil then
+        for _, enemy in ipairs(thisRoom.Enemies) do
+          if enemies == nil then
+            enemies = enemy
+            enemies = enemies .. " " .. enemy
+          else
+          end
+        end
+        current.Enemies = enemies
+      end
       display[ci] = current
     end
   end
   deep_print(display)
 end
 
-local meRoute = results[1]
+local meRoute = Checkpoint("checkpoints/meRoute.bin", function()
+  local results = FindIncrementally({
+    SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAresFirst, 2, 7, AthenaSeed, AthenaOffset),
+    SetupFindIncrementally(CurrentRun, GameState, c2ExitDoor, requireAthenaFirst, 2, 7, AthenaSeed, AthenaOffset)
+  })
+  
+  return results[1]
+end)
+
 Display(meRoute)
 
 -- Second section. All we care about is getting Impending Doom early, with low manips.
 -- It might not be possible to get it before Meg if we haven't had a bag refill yet.
 -- We also want to avoid midshop in Tartarus because it will probably throw us off route.
-local secondSectionStates = {}
 local basicRequirements = NewRequirements(8, 17)
 basicRequirements.SelectUpgrade = SelectUpgrade
 for ci=8,11 do
@@ -131,22 +147,25 @@ basicRequirements.C15.ForceMinimumOffset = 12 -- a lot of yapping can occur here
 -- C8 and C9 are too early for another run reward
 -- C13 = endshop, C14 = meg, C15 = stairs, C16 = asphodel intro, C17 = next chance to get impending
 local possibleImpendingDoomRooms = { 10, 11, 12, 17 }
-for _, ci in ipairs(possibleImpendingDoomRooms) do
-  local requirements = DeepCopyTable(basicRequirements)
-  requirements["C"..ci].Room.UpgradeOptions = OneMatches({
-    ItemName = "AresLongCurseTrait"
-  })
-  local state = ResumeFindIncrementally(meRoute.C7, requirements, 7, 17, 1)
-  table.insert(secondSectionStates, state)
-end
 
-local secondSectionResults = FindIncrementally(secondSectionStates)
-local c13Route = secondSectionResults[1]
-Display(c13Route)
-secondSectionStates = nil -- don't need these anymore
+local c17Route = Checkpoint("checkpoints/c17Route.bin", function()
+  local secondSectionStates = {}
+  for _, ci in ipairs(possibleImpendingDoomRooms) do
+    local requirements = DeepCopyTable(basicRequirements)
+    requirements["C"..ci].Room.UpgradeOptions = OneMatches({
+      ItemName = "AresLongCurseTrait"
+    })
+    local state = ResumeFindIncrementally(meRoute.C7, requirements, 7, 17, 1)
+    table.insert(secondSectionStates, state)
+  end
+
+  local secondSectionResults = FindIncrementally(secondSectionStates)
+  return MergeTables(meRoute, secondSectionResults[1])
+end)
+
+Display(c17Route, { Start = 7 })
 
 -- Third section. All we care about is avoiding Dio and getting 2-sack.
-local thirdSectionStates = {}
 local requirements = NewRequirements(18, 48)
 for ci=18,46 do
   requirements["C"..ci].Exit.Reward = Not("DionysusUpgrade")
@@ -163,17 +182,31 @@ requirements.C39.Exit.StyxMiniBoss = true
 requirements.C42.Exit.RoomName = MatchesOne({ "D_MiniBoss01", "D_MiniBoss04"})
 -- requirements.C43.Room.RoomName = MatchesOne({ "D_MiniBoss04", "D_MiniBoss01" })
 requirements.C47.Exit.RoomName = "D_Reprieve01" -- sack
-local thirdSectionResult = FindIncrementally({
-  ResumeFindIncrementally(c13Route.C17, requirements, 17, 38, 1)
-})
-local thirdRoute = thirdSectionResult[1]
-Display(thirdRoute)
-thirdSectionStates = nil
+
+local thirdRoute = Checkpoint("checkpoints/thirdRoute.bin", function()
+  local result = FindIncrementally({
+    ResumeFindIncrementally(c17Route.C17, requirements, 17, 28, 1)
+  })
+  return MergeTables(c17Route, result[1])
+end)
+
+Display(thirdRoute, { Start = 17 })
+
+local fourthRoute = Checkpoint("checkpoints/fourthRoute.bin", function()
+  local result = FindIncrementally({
+    ResumeFindIncrementally(thirdRoute.C28, requirements, 28, 38, 1)
+  })
+  return MergeTables(thirdRoute, result[1])
+end)
+
+Display(fourthRoute, { Start = 28 })
 
 -- Split out styx finding to reduce search space
-local finalSectionStates = {}
-local finalSectionResult = FindIncrementally({
-  ResumeFindIncrementally(thirdRoute.C38, requirements, 38, 48, 1)
-})
-local finalRoute = finalSectionResult[1]
-Display(finalRoute)
+local finalRoute = Checkpoint("checkpoints/finalRoute.bin", function()
+  local result = FindIncrementally({
+    ResumeFindIncrementally(fourthRoute.C38, requirements, 38, 48, 1)
+  })
+  return MergeTables(fourthRoute, result[1])
+end)
+
+Display(finalRoute, { Start = 38 })
