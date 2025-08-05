@@ -47,6 +47,15 @@ LazyDeepCopy.Unstub = function(t)
     end
 end
 
+function LazyDeepCopyDeepUnstub(t)
+    LazyDeepCopy.Unstub(t)
+    for k,v in pairs(t) do
+        if type(v) == "table" then
+            LazyDeepCopyDeepUnstub(v)
+        end
+    end
+end
+
 function LazyDeepCopyTable(t)
     -- Take a shallow copy, so if the original is modified we don't see the change.
     local snapshot = {}
